@@ -46,7 +46,11 @@ export function applyMedia(lib = {}, media = null) {
   if (!mm) return lib;
   const mine = u => { const m = Object.prototype.hasOwnProperty.call(mm, u) ? mm[u] : null; return m && typeof m.url === "string" && m.url.startsWith("https://") ? m.url : ""; };
   return { ...lib,
-    lessons: (lib.lessons || []).map(l => l.src && mine(l.src) ? { ...l, src: mine(l.src), src_alt: l.src } : l),
+    lessons: (lib.lessons || []).map(l => {
+      if (l.src) return mine(l.src) ? { ...l, src: mine(l.src), src_alt: l.src } : l;
+      const u = l.tg && mine(l.tg); if (!u) return l;   // audio fetched from its Telegram post (tools/fetch_audio.py): play ours, keep the post link
+      const d = mm[l.tg].duration; return { ...l, src: u, duration: l.duration || (Number.isInteger(d) && d > 0 ? d : 0) };
+    }),
     books: (lib.books || []).map(b => ({ ...b, files: b.files.map(f => mine(f.url) ? { ...f, url: mine(f.url), url_alt: f.url } : f) })) };
 }
 

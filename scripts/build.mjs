@@ -25,6 +25,11 @@ const render = p => fill(shell, { HEAD: headHtml(p), TOP: chromeTop(p.nav), MAIN
 const write = (rel, html) => { const f = path.join(OUT, rel); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, html); };
 const MEDIA = readJSON("data/media.json", true);
 write("data/library.json", JSON.stringify(applyMedia(LIB, MEDIA)));   // the one library file browsers load: all sources merged, mirrored links applied
+{ /* CSP: allow audio only from the hosts our own copies live on (MEDIA_BASE of tools/fetch_audio.py) */
+  const hosts = [...new Set(Object.values(MEDIA || {}).map(m => { try { const u = new URL(m.url); return u.protocol === "https:" ? u.origin : ""; } catch { return ""; } }).filter(Boolean))].sort();
+  const hf = path.join(OUT, "_headers");
+  fs.writeFileSync(hf, fs.readFileSync(hf, "utf8").replace(/media-src [^;]*/, ["media-src 'self'", ...hosts].join(" ")));
+}
 
 /* routes */
 const routes = ["/", "/library/", "/search/"];

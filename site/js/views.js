@@ -184,7 +184,7 @@ function lessonPage(id) {
   const ext = l.kind === "audio" && !l.src
     ? (tg ? `<a class="btn" href="${esc(tg)}" target="_blank" rel="noopener">${ic("external-link", 17)} المنشور على تيليجرام</a>` : "")
     : l.kind === "audio"
-    ? `<a class="btn" href="${esc(safeUrl(l.src))}" download target="_blank" rel="noopener">${ic("download", 17)} تحميل</a>`
+    ? `<a class="btn" href="${esc(safeUrl(l.src))}" download target="_blank" rel="noopener">${ic("download", 17)} تحميل</a>` + (tg ? `<a class="btn" href="${esc(tg)}" target="_blank" rel="noopener">${ic("external-link", 17)} المنشور على تيليجرام</a>` : "")
     : `<a class="btn" href="https://www.youtube.com/watch?v=${safeYt(l.id)}" target="_blank" rel="noopener">${ic("external-link", 17)} فتح في يوتيوب</a>`;
   const c = crumbs(flat ? [{ t: sec.title, h: href.series(s.id) }, { t: title }] : [{ t: sec.title, h: href.section(sec) }, { t: s.title, h: href.series(s.id) }, { t: title }]);
   const html = `${c.html}

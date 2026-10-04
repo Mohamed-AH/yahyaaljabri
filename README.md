@@ -17,7 +17,7 @@ Telegram Desktop JSON exports ── tools/telegram_lessons.py ──► lessons
 - **Export.** In Telegram Desktop: channel → ⋮ → Export chat history → Format: JSON. Media can be left out (or capped at a size): the JSON still lists every post with its file name, size and duration. Put the two exports in `telegram/jabiri/` and `telegram/jabrih/` (not committed).
 - **Merge.** `python tools/telegram_lessons.py` collapses posts of the same file (size + duration) across both channels, merges a voice note and an m4a of the same lesson, takes each title from the caption, the file name, or the describing post before/after the audio (checked against the length stated in it), and assigns a series from the `SERIES` patterns at the top of the file. Lessons it cannot title, or that look like another speaker, are flagged.
 - **Import.** `python tools/import_telegram.py` writes `site/data/library.json`, leaving out flagged lessons. Fix or approve one in `data/telegram_overrides.json`: `{"jabiri-1234": {"title": "…", "series": "riyad", "publish": true}}`.
-- **Audio.** Until the audio is copied to our own storage, a lesson page links to its Telegram post («استمع على تيليجرام»). `tools/mirror_media.py` (from the template) fills `src` once files are in R2.
+- **Audio.** Until a lesson's audio is in our own storage, its page links to the Telegram post («استمع على تيليجرام»). `tools/fetch_audio.py` downloads the files through your own Telegram account (or takes them from a Telegram Desktop export), converts them to mono AAC 48 kbps and uploads them to R2, recording post -> URL in `site/data/media.json`; the build then shows the player. Setup and usage: [docs/audio-hosting.md](docs/audio-hosting.md).
 
 ## Run it locally
 
@@ -34,7 +34,7 @@ node tests/e2e.mjs http://localhost:8000 && node tests/xss_check.mjs http://loca
 ## Still to do
 
 - Domain (placeholder `SITE` in `site/js/core.js`), Cloudflare project, Search Console.
-- Audio files: download the large files, convert to mono 48 kbps, mirror to R2.
+- Audio files: run `tools/fetch_audio.py` in batches (see docs/audio-hosting.md).
 - YouTube lessons: `ingest.py` reads a channel *handle*; this channel is known by id (`config.json` → `channel_id`), so `ingest.py` needs a small change first. Needs a `YOUTUBE_API_KEY`.
 - 64 recordings without any title and 19 possibly by other speakers are waiting for a person (`data/telegram_overrides.json`).
 - Biography page: `site/data/bio.json` (format in `docs/bio-spec.md`).
