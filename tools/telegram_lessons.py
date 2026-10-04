@@ -1,0 +1,362 @@
+"""Merge the two Telegram exports into one de-duplicated lesson list.
+
+Reads  $TELEGRAM_EXPORTS/{jabiri,jabrih}/result.json (Telegram Desktop JSON exports)
+Writes $TELEGRAM_EXPORTS/lessons.json (input of tools/import_telegram.py)
+"""
+import json, os, re, collections
+from datetime import datetime
+
+ROOT = os.environ.get('TELEGRAM_EXPORTS', 'telegram')   # folder with jabiri/result.json and jabrih/result.json
+CHANNELS = ['jabiri', 'jabrih']          # jabiri (official) wins when a file is in both
+SHEIKH_CHANNELS = {'قناة فضيلة الشيخ يحيى الجابري الرسمية',
+                   'قناة الشيخ : يحيى بن أحمد الجابري حفظه الله الثانية',
+                   'يحي بن أحمد الجابري'}
+OTHER_SCHOLARS = ['الفوزان', 'ابن باز', 'بن باز', 'العثيمين', 'ابن عثيمين', 'الألباني', 'المدخلي',
+                  'ربيع بن هادي', 'عبيد الجابري', 'البخاري حفظه', 'السحيمي', 'اللحيدان', 'آل الشيخ', 'مفتي']
+
+# (series id, title, section, pattern) — first match wins, so specific before general
+SERIES = [
+    ('ibn-kathir',  'تفسير ابن كثير',                 'tafsir',  r'ابن كثير|ابن كثير'),
+    ('saadi',       'تفسير ابن سعدي',                 'tafsir',  r'سعدي'),
+    ('shawkani',    'التعليق على تفسير الشوكاني',     'tafsir',  r'الشوكاني|فتح القدير'),
+    ('tafsir',      'دروس في التفسير',                'tafsir',  r'تفسير'),
+    ('musnad',      'شرح مسند الإمام أحمد',           'hadith',  r'مسند'),
+    ('bukhari',     'شرح صحيح البخاري',               'hadith',  r'البخاري|بخاري'),
+    ('muslim',      'شرح صحيح مسلم',                  'hadith',  r'صحيح مسلم|ص مسلم|ش مسلم|درس مسلم|\bمسلم\b|صحيح م\b|صحيح م\s*\d'),
+    ('riyad',       'شرح رياض الصالحين',              'hadith',  r'رياض'),
+    ('bulugh',      'شرح بلوغ المرام',                'hadith',  r'بلوغ'),
+    ('arbain',      'شرح الأربعين النووية',           'hadith',  r'الاربعين|الأربعين|الأربعون|الاربعون'),
+    ('umdah',       'شرح عمدة الأحكام',               'hadith',  r'عمدة'),
+    ('sunan',       'شرح السنن',                      'hadith',  r'سنن'),
+    ('jihad',       'شرح كتاب الجهاد',                'hadith',  r'الجهاد'),
+    ('qawl-mufid',  'التعليق على القول المفيد',       'aqeedah', r'القول المفيد'),
+    ('usul-sitta',  'شرح الأصول الستة',               'aqeedah', r'الاصول الستة|الأصول الستة'),
+    ('fath-majid',  'التعليق على فتح المجيد',         'aqeedah', r'فتح المجيد'),
+    ('taysir',      'التعليق على تيسير العزيز الحميد','aqeedah', r'تيسير العزيز'),
+    ('muzani',      'شرح السنة للمزني',               'aqeedah', r'المزني'),
+    ('sifat',       'الصفات الإلهية',                 'aqeedah', r'الصفات الالهية|الصفات الإلهية'),
+    ('ramadan',     'مجالس شهر رمضان',                'lectures', r'مجالس شهر رمضان'),
+    ('mulakhkhas',  'التعليق على الملخص الفقهي',      'fiqh',    r'الملخص'),
+    ('masail',      'شرح مسائل الجاهلية',             'aqeedah', r'مسائل الجاهلية'),
+    ('nar',         'أسباب دخول النار',               'lectures', r'دخول النار|دخو ل النار'),
+    ('tawhid',      'شرح كتاب التوحيد',               'aqeedah', r'كتاب التوحيد|ك التوحيد|التوحيد|باب ما جاء في|باب الخوف من الشرك|باب من حقق|باب قول الله'),
+    ('tahawiyya',   'شرح العقيدة الطحاوية',           'aqeedah', r'الطحاوي'),
+    ('wasitiyya',   'شرح العقيدة الواسطية',           'aqeedah', r'الواسطي'),
+    ('usul',        'شرح الأصول الثلاثة',             'aqeedah', r'الاصول الثلاث|الأصول الثلاث|الاصل|الأصل'),
+    ('qawaid',      'شرح القواعد الأربع',             'aqeedah', r'القواعد'),
+    ('nawaqid',     'شرح نواقض الإسلام',              'aqeedah', r'نواقض'),
+    ('kashf',       'شرح كشف الشبهات',                'aqeedah', r'كشف الشبهات'),
+    ('lumah',       'شرح لمعة الاعتقاد',              'aqeedah', r'لمعة'),
+    ('qayrawaniyya','التعليق على العقيدة القيروانية', 'aqeedah', r'القيرواني|الاستعانة برب'),
+    ('sira',        'السيرة النبوية',                 'lectures', r'السيرة|سيرة'),
+    ('siyam',       'أحكام الصيام',                   'lectures', r'الصيام'),
+    ('khutab',      'خطب الجمعة',                     'khutab',  r'خطبة|خطبتا|خطبتي|خطبه|الخطبة'),
+    ('tilawa',      'تلاوات',                         'tilawa',  r'تلاوة|تلاوه|برواية|صلاة القيام|صلأة ألقيام|التراويح|^صلاة العشاء|^صلاة الفجر|^صلاة المغرب'),
+    ('lectures',    'محاضرات وكلمات',                 'lectures', r'محاضرة|محاضره|كلمة|كلمه|نصيحة|نصيحه|تعزية|تعز ية|تعزيه'),
+    ('fatawa',      'أسئلة وأجوبة',                   'lectures', r'سؤال|اسئلة|أسئلة|فتوى|فتاوى|جواب'),
+]
+SERIES_RE = [(sid, t, sec, re.compile(p)) for sid, t, sec, p in SERIES]
+
+AR_DIGITS = str.maketrans('٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹', '01234567890123456789')
+MONTHS = {'محرم': 1, 'صفر': 2, 'ربيع الاول': 3, 'ربيع الأول': 3, 'ربيع اول': 3, 'ربيع الآخر': 4, 'ربيع الاخر': 4,
+          'ربيع الثاني': 4, 'جمادى الاولى': 5, 'جمادى الأولى': 5, 'جمادى الاخرة': 6, 'جمادى الآخرة': 6,
+          'جمادى الثانية': 6, 'رجب': 7, 'شعبان': 8, 'رمضان': 9, 'شوال': 10, 'ذو القعدة': 11, 'ذي القعدة': 11,
+          'ذو العقدة': 11, 'ذو الحجة': 12, 'ذي الحجة': 12}
+ORDINALS = {'الأول': 1, 'الاول': 1, 'الثاني': 2, 'الثالث': 3, 'الرابع': 4, 'الخامس': 5, 'السادس': 6, 'السابع': 7,
+            'الثامن': 8, 'التاسع': 9, 'العاشر': 10, 'الحادي عشر': 11, 'الثاني عشر': 12, 'الثالث عشر': 13,
+            'الرابع عشر': 14, 'الخامس عشر': 15, 'السادس عشر': 16, 'السابع عشر': 17, 'الثامن عشر': 18,
+            'التاسع عشر': 19, 'العشرون': 20}
+JUNK_NAME = re.compile(r'^(AUD|PTT|audio|VID|WA|Recording|rec|voice|record|\d+$|[\d_\- ]+$)', re.I)
+EMOJI = re.compile('[\U0001F000-\U0001FFFF☀-➿⬀-⯿️‍‏‎●□]')
+
+
+def text_of(x):
+    t = x.get('text')
+    return t if isinstance(t, str) else ''.join(p if isinstance(p, str) else p.get('text', '') for p in t)
+
+
+def clean(s):
+    s = EMOJI.sub(' ', s or '').replace('_', ' ').replace('ـ', '')
+    s = re.sub(r'[ً-ْ]', '', s)               # diacritics
+    return re.sub(r'\s+', ' ', s).strip()
+
+
+def name_title(fn):
+    if not fn:
+        return ''
+    stem = re.sub(r'\.(m4a|mp3|ogg|opus|aac|wav|amr|mp4)$', '', fn, flags=re.I)
+    stem = re.sub(r'-?AudioConverter.*$', '', stem)
+    if JUNK_NAME.match(stem.strip()) or JUNK_CAPTION.match(clean(stem)):
+        return ''
+    return clean(stem)
+
+
+def caption_title(t):
+    for line in (t or '').split('\n'):
+        c = clean(line).strip(' -:.*#')
+        if len(c) >= 6 and not re.match(r'^(فضيلة|لفضيلة|مع فضيلة|الشيخ|جامع|مسجد|http)', c):
+            return c[:160]
+    return ''
+
+
+def hijri(s):
+    s = s.translate(AR_DIGITS).replace('ا', 'ا')
+    m = re.search(r'(\d{1,2})\s*[/\-.ا،؛]\s*(\d{1,2})\s*[/\-.ا،؛]\s*(14\d\d)', s)
+    if m:
+        return f'{m.group(3)}-{int(m.group(2))}-{int(m.group(1))}'
+    m = re.search(r'(14\d\d)\s*[/\-.]\s*(\d{1,2})\s*[/\-.]\s*(\d{1,2})', s)
+    if m:
+        return f'{m.group(1)}-{int(m.group(2))}-{int(m.group(3))}'
+    for name, num in sorted(MONTHS.items(), key=lambda kv: -len(kv[0])):
+        m = re.search(r'(\d{1,2})\s*' + name + r'\s*(14\d\d)', s)
+        if m:
+            return f'{m.group(2)}-{num}-{int(m.group(1))}'
+    return ''
+
+
+def lesson_no(s):
+    s2 = s.translate(AR_DIGITS)
+    m = re.search(r'(?:الدرس|درس|المجلس|الحلقة|الشريط)\s*(?:رقم)?\s*\(?(\d{1,3})\)?', s2)
+    if m:
+        return int(m.group(1))
+    for w, n in sorted(ORDINALS.items(), key=lambda kv: -len(kv[0])):
+        if re.search(r'(?:الدرس|المجلس|الحلقة)\s+' + w + r'(?!\s*عشر)', s2):
+            return n
+    return None
+
+
+JUNK_CAPTION = re.compile(r'^(مقطع صوتي|صوت|تسجيل صوتي|جديد الدروس|جديد التسجيلات|جديد)\b')
+VOICE_BPS = 18300 / 8          # bytes/s of the channels' voice notes (5.66 MB voice = 41:20 m4a, posts 5968/5969)
+WINDOW = 1800                  # an announcement must precede its audio by at most 30 min
+
+
+def announcement(t):
+    """Book, Hijri date and stated length from a 'تم التسجيل' style post."""
+    c = clean(t)
+    book = ''
+    m = re.search(r'(?:شرح|كتاب)\s*(?:كتاب)?\s*[:\-]?\s*[\(\[]\s*([^\)\]]{3,80})[\)\]]', c)
+    if m:
+        book = re.sub(r'\s*-\s*', ' ', m.group(1)).strip(' -')
+    elif re.search(r'خطب', c):
+        m = re.search(r'خطبة الجمعة\s*([^\n]{0,60})', clean(t.split('\n\n')[0] + ' ' + ' '.join(t.split('\n')[:4])))
+        book = 'خطبة الجمعة'
+    d = re.search(r'\(?\s*(\d{1,2}):(\d{2})(?::(\d{2}))?\s*\)?\s*دقيق', c.translate(AR_DIGITS))
+    secs = None
+    if d:
+        a, b, e = int(d.group(1)), int(d.group(2)), d.group(3)
+        secs = a * 3600 + b * 60 + int(e) if e else a * 60 + b
+    return book, hijri(c), secs, ('تم التسجيل' in c or bool(book))
+
+
+BOILER = re.compile(r'العلم اشرف|العلم أشرف|اكرم من يمشي|أكرم من يمشي|تم التسجيل|دعوتكم|فضيلة|لفضيلة|الشيخ الوالد|'
+                    r'جامع|مسجد|http|موقع|لشهر|اليوم|بعد صلاة|حفظه الله|القنوات|قناة|الدال على الخير|جديد|السلام عليكم|'
+                    r'سائل يقول|احسن الله|أحسن الله|^\W*$')
+
+
+def desc_title(t):
+    """A short title from a describing post: Q&A number + question, the book, or its first real line."""
+    c = clean(t).translate(AR_DIGITS)
+    q = re.search(r'الس\W*\(?\s*(\d{1,3})\s*\)?\W*ؤال', c)
+    if q:
+        body = re.search(r'【\s*([^】]{5,120})', clean(t))
+        return f"السؤال {int(q.group(1))}" + (': ' + body.group(1).strip(' *') if body else '')
+    book = announcement(t)[0]
+    lines = [clean(x).strip(' -:.*#©⇦[](){}') for x in (t or '').split('\n')]
+    for i, l in enumerate(lines):                       # "عنوان المحاضرة 🔽" then the title on the next line
+        if re.search(r'عنوان|بعنوان', l):
+            rest = re.sub(r'.*(?:عنوان المحاضرة|عنوان الخطبة|بعنوان)\s*:?', '', l).strip()
+            nxt = rest or next((n for n in lines[i + 1:] if len(n) >= 4), '')
+            if nxt:
+                return (book + ': ' + nxt if book and book not in nxt else nxt)[:160]
+    if book:                                            # a lesson in a book: the book name (+ date added later)
+        return book
+    for l in lines:
+        if len(l) >= 6 and not BOILER.search(l):
+            return l[:160]
+    return ''
+
+
+def length(x):
+    if x.get('duration_seconds'):
+        return x['duration_seconds'], True
+    if x.get('media_type') == 'voice_message' and x.get('file_size'):
+        return x['file_size'] / VOICE_BPS, False
+    return None, False
+
+
+def fits(stated, x):
+    got, exact = length(x)
+    if stated is None or got is None:
+        return True
+    tol = max(120, stated * (0.05 if exact else 0.3))
+    return abs(stated - got) <= tol
+
+
+SPEAKER = re.compile(r'(فضيلة|الشيخ|الوالد|يحيى|يحي|بن|أحمد|احمد|الجابري|حفظه الله)\s*')
+
+
+def merge_same_title(lessons):
+    key = lambda l: re.sub(r'[^\u0621-\u064A0-9٠-٩]', '', SPEAKER.sub('', l['title']))
+    out, seen = [], {}
+    for l in sorted(lessons, key=lambda l: l['date']):
+        k = key(l)
+        o = seen.get(k)
+        if len(k) >= 12 and o and abs((datetime.fromisoformat(l['date']) - datetime.fromisoformat(o['date'])).days) <= 2 \
+                and o['duration_min'] and l['duration_min'] \
+                and abs(o['duration_min'] - l['duration_min']) <= max(2, 0.3 * max(o['duration_min'], l['duration_min'])):
+            a, b = (o, l) if (o['kind'] == 'audio_file', o['duration_exact']) >= (l['kind'] == 'audio_file', l['duration_exact']) else (l, o)
+            a['posts'] = a['posts'] + b['posts']
+            a['alt_copy'] = b['id']
+            if a is l:
+                out[out.index(o)] = l; seen[k] = l
+            continue
+        seen[k] = l; out.append(l)
+    return out
+
+
+def main():
+    posts = []
+    for ch in CHANNELS:
+        msgs = json.load(open(f'{ROOT}/{ch}/result.json'))['messages']
+        prev_text = None
+        for x in msgs:
+            if x.get('type') != 'message':
+                continue
+            if x.get('media_type') not in ('audio_file', 'voice_message'):
+                if text_of(x).strip() and not x.get('file'):
+                    prev_text = x
+                continue
+            x['_ch'], x['_t'] = ch, text_of(x)
+            # the post just before an audio often describes it ("تم التسجيل ..."); keep it if the
+            # stated length in it matches the clip
+            x['_ann'] = None
+            if prev_text and int(x['date_unixtime']) - int(prev_text['date_unixtime']) <= WINDOW \
+                    and desc_title(text_of(prev_text)):
+                info = announcement(text_of(prev_text))
+                x['_ann'] = (f"{ch}/{prev_text['id']}", text_of(prev_text), info, fits(info[2], x))
+            posts.append(x)
+        # an audio with no description before it may be described by the post right after it
+    by_id = {(p['_ch'], p['id']): p for p in posts}
+    for ch in CHANNELS:
+        msgs = json.load(open(f'{ROOT}/{ch}/result.json'))['messages']
+        last_audio = None
+        for x in msgs:
+            if x.get('type') != 'message':
+                continue
+            if x.get('media_type') in ('audio_file', 'voice_message'):
+                last_audio = by_id[(ch, x['id'])]
+                continue
+            t = text_of(x)
+            if last_audio and not last_audio['_ann'] and t.strip() and not x.get('file') \
+                    and int(x['date_unixtime']) - int(last_audio['date_unixtime']) <= 600 and desc_title(t):
+                info = announcement(t)
+                last_audio['_ann'] = (f"{ch}/{x['id']}", t, info, fits(info[2], last_audio))
+            last_audio = None
+
+    # 1) same file (size + duration) posted more than once
+    groups = collections.OrderedDict()
+    for x in posts:
+        groups.setdefault((x.get('file_size'), x.get('duration_seconds')), []).append(x)
+    groups = list(groups.values())
+    # 2) different files described by the same announcement (voice note + m4a of one lesson)
+    parent = list(range(len(groups)))
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]; i = parent[i]
+        return i
+    by_ann = {}
+    for i, g in enumerate(groups):
+        for x in g:
+            if x['_ann'] and x['_ann'][3] and x['_ann'][2][3] and len(clean(x['_ann'][1])) > 60:
+                key = clean(x['_ann'][1])
+                if key in by_ann:
+                    parent[find(i)] = find(by_ann[key])
+                else:
+                    by_ann[key] = i
+    merged = collections.OrderedDict()
+    for i, g in enumerate(groups):
+        merged.setdefault(find(i), []).extend(g)
+
+    lessons = []
+    for g in merged.values():
+        # primary copy: a real audio file with a known length beats a voice note; then the official channel
+        g.sort(key=lambda x: (x.get('media_type') != 'audio_file', not x.get('duration_seconds'),
+                              CHANNELS.index(x['_ch']), int(x['date_unixtime'])))
+        main_post = g[0]
+        dur, exact = length(main_post)
+        size = main_post.get('file_size')
+        caps = [x['_t'] for x in g if x['_t'].strip() and not JUNK_CAPTION.match(clean(x['_t']))]
+        names = [x.get('file_name') for x in g if x.get('file_name')]
+        anns = [x['_ann'] for x in g if x['_ann']]
+        good_ann = next((a for a in anns if a[3]), None)
+        title, source = '', ''
+        for c in caps:
+            title = caption_title(c)
+            if title:
+                source = 'caption'; break
+        if not title:
+            for n in names:
+                title = name_title(n)
+                if title:
+                    source = 'file name'; break
+        if not title and good_ann:
+            title = desc_title(good_ann[1])
+            hd0 = good_ann[2][1]
+            if title and hd0 and hd0.split('-')[0] not in title.translate(AR_DIGITS):
+                title += ' ' + hd0.replace('-', '/')
+            source = 'description post' if title else ''
+        blob = clean(' '.join(caps + [n or '' for n in names] + ([good_ann[1]] if good_ann else [])))
+        tb = clean(title)
+        series = next(((sid, t, sec) for sid, t, sec, rx in SERIES_RE
+                       if rx.search(blob) or rx.search(tb) or rx.search(blob.replace(' ', ''))), ('', '', ''))
+        if not series[0] and title:
+            series = ('misc', 'دروس ومحاضرات متفرقة', 'lectures')     # titled one-offs: publish, no review
+        if title.startswith('السؤال '):
+            series = next((sid, t, sec) for sid, t, sec, rx in SERIES_RE if sid == 'fatawa')
+        fwd = sorted({x.get('forwarded_from') for x in g if x.get('forwarded_from')} - SHEIKH_CHANNELS)
+        sheikh = bool(re.search(r'يحيى|يحي|الجابري', blob))
+        weak = series[0] in ('misc', 'lectures', 'fatawa', '')
+        others = [s for s in OTHER_SCHOLARS if s in blob] if (weak and not sheikh) else []
+        if sheikh: fwd = []
+        flags = []
+        if not title: flags.append('no title')
+        if fwd: flags.append('forwarded from ' + ' / '.join(fwd))
+        if others: flags.append('mentions ' + ' / '.join(others))
+        if not series[0]: flags.append('no series')
+        if anns and not good_ann and not title: flags.append('description length mismatch')
+        if title and series[1] and len(re.findall(r'[\u0621-\u064A]{3,}', title)) <= 1:
+            title = series[1] + ' ' + title            # a bare date as title: prefix the series name
+        hd = hijri(blob) or (good_ann[2][1] if good_ann else '')
+        lessons.append({
+            'id': f"{main_post['_ch']}-{main_post['id']}",
+            'title': title, 'title_source': source,
+            'series': series[0], 'series_title': series[1], 'section': series[2],
+            'lesson_number': lesson_no(blob), 'hijri': hd,
+            'date': main_post['date'][:10],
+            'duration_min': round(dur / 60, 1) if dur else None,
+            'duration_exact': exact,
+            'stated_min': round(good_ann[2][2] / 60, 1) if good_ann and good_ann[2][2] else None,
+            'size_mb': round(size / 1e6, 1) if size else None,
+            'kind': main_post.get('media_type'),
+            'file_name': main_post.get('file_name') or '',
+            'posts': [f"https://t.me/{x['_ch']}/{x['id']}" for x in g],
+            'description_post': f"https://t.me/{good_ann[0]}" if good_ann else '',
+            'have_file': not str(main_post.get('file', '')).startswith('('),
+            'flags': flags,
+            'caption': caps[0][:300] if caps else (good_ann[1][:300] if good_ann else ''),
+        })
+    lessons = merge_same_title(lessons)
+    lessons.sort(key=lambda l: l['date'])
+    json.dump(lessons, open(f'{ROOT}/lessons.json', 'w'), ensure_ascii=False, indent=1)
+    return posts, lessons
+
+
+if __name__ == '__main__':
+    posts, lessons = main()
+    c = collections.Counter(l['series'] or '(none)' for l in lessons)
+    print('posts', len(posts), 'unique lessons', len(lessons))
+    print('hours', round(sum(l['duration_min'] or 0 for l in lessons) / 60), 'GB', round(sum(l['size_mb'] or 0 for l in lessons) / 1e3, 1))
+    print(c.most_common())
+    print('title sources', collections.Counter(l['title_source'] or '(none)' for l in lessons))
+    print('flags', collections.Counter(f.split(' ')[0] + ' ' + f.split(' ')[1] if ' ' in f else f for l in lessons for f in l['flags']))
+    print('with hijri', sum(1 for l in lessons if l['hijri']), 'with number', sum(1 for l in lessons if l['lesson_number']))
