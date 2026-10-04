@@ -46,3 +46,4 @@ tools/channel_report.txt
 tools/channel_hits.json
 telegram/
 node_modules
+mockups/out/
