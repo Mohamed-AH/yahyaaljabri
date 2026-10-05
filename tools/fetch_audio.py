@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Download the lesson audio from Telegram, shrink it, and host it in our own Cloudflare R2 bucket. Run on YOUR machine.
+r"""Download the lesson audio from Telegram, shrink it, and host it in our own Cloudflare R2 bucket. Run on YOUR machine.
 
     pip install -r tools/requirements-mirror.txt          (boto3 + telethon; ffmpeg must be installed too)
     .env (git-ignored) or environment variables:
