@@ -1,4 +1,68 @@
 {
+ "https://t.me/jabiri/4451": {
+  "url": "https://pub-1cf9b6068a0b47a4bad846042a460165.r2.dev/audio/54256993268425f3.m4a",
+  "key": "audio/54256993268425f3.m4a",
+  "sha256": "54256993268425f33b5a588a1b53a41c0a13c9a8931b386e4d73aa1cfcb51d54",
+  "size": 15525860,
+  "duration": 2569,
+  "src_size": 21950236
+ },
+ "https://t.me/jabiri/4452": {
+  "url": "https://pub-1cf9b6068a0b47a4bad846042a460165.r2.dev/audio/d4037c8bf5fa0aec.m4a",
+  "key": "audio/d4037c8bf5fa0aec.m4a",
+  "sha256": "d4037c8bf5fa0aecca12b3613ac88fd97e6225acde2d185315cf8f38c9d320f4",
+  "size": 18257055,
+  "duration": 3021,
+  "src_size": 26314827
+ },
+ "https://t.me/jabiri/4454": {
+  "url": "https://pub-1cf9b6068a0b47a4bad846042a460165.r2.dev/audio/d60faf8cf02efb6c.m4a",
+  "key": "audio/d60faf8cf02efb6c.m4a",
+  "sha256": "d60faf8cf02efb6c92f172da6fe181c53d91b86001d4d3ad507c7bb480389b4d",
+  "size": 17134494,
+  "duration": 2835,
+  "src_size": 24340987
+ },
+ "https://t.me/jabiri/4468": {
+  "url": "https://pub-1cf9b6068a0b47a4bad846042a460165.r2.dev/audio/788c654fd75a564d.m4a",
+  "key": "audio/788c654fd75a564d.m4a",
+  "sha256": "788c654fd75a564d30465dcc78cedd9373c451fb2ca71bd689f023dda3e44138",
+  "size": 9574039,
+  "duration": 1584,
+  "src_size": 21350625
+ },
+ "https://t.me/jabiri/4470": {
+  "url": "https://pub-1cf9b6068a0b47a4bad846042a460165.r2.dev/audio/7131c69d8a61a096.m4a",
+  "key": "audio/7131c69d8a61a096.m4a",
+  "sha256": "7131c69d8a61a0966a1742cd275ff033f15b1d55a650964cefd4316f0f78070c",
+  "size": 32575332,
+  "duration": 5390,
+  "src_size": 48046034
+ },
+ "https://t.me/jabiri/4471": {
+  "url": "https://pub-1cf9b6068a0b47a4bad846042a460165.r2.dev/audio/c0981e911c1af412.m4a",
+  "key": "audio/c0981e911c1af412.m4a",
+  "sha256": "c0981e911c1af41205159d2fb1ae8a8ffd6cfd1e6b07a394790f9ea6d32c0e3c",
+  "size": 2076816,
+  "duration": 682,
+  "src_size": 987336
+ },
+ "https://t.me/jabiri/4473": {
+  "url": "https://pub-1cf9b6068a0b47a4bad846042a460165.r2.dev/audio/62f1039eb87a005a.m4a",
+  "key": "audio/62f1039eb87a005a.m4a",
+  "sha256": "62f1039eb87a005a6d45bf4a4a9b4efeaf177a9e6a2c5be91444baa396e833c3",
+  "size": 6942381,
+  "duration": 2281,
+  "src_size": 4776067
+ },
+ "https://t.me/jabiri/4477": {
+  "url": "https://pub-1cf9b6068a0b47a4bad846042a460165.r2.dev/audio/c9579fdee6c40c92.m4a",
+  "key": "audio/c9579fdee6c40c92.m4a",
+  "sha256": "c9579fdee6c40c9289193d39ac247cd2244c9b33db254d9c35fd82a202b9008f",
+  "size": 33274685,
+  "duration": 5506,
+  "src_size": 135988136
+ },
  "https://t.me/jabiri/4484": {
   "url": "https://pub-1cf9b6068a0b47a4bad846042a460165.r2.dev/audio/b06b2a375fce67f5.m4a",
   "key": "audio/b06b2a375fce67f5.m4a",
