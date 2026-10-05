@@ -12,8 +12,10 @@ const SRC = path.join(ROOT, "site"), OUT = path.join(ROOT, "dist");
 const readJSON = (f, optional = false) => { try { return JSON.parse(fs.readFileSync(path.join(SRC, f), "utf8")); } catch (e) { if (optional) return null; throw e; } };
 
 const t0 = Date.now();
+/* MEDIA_JSON=<file>: build with another media manifest (tests/player_check.mjs uses tests/fixtures/media.json) */
+const MEDIA = process.env.MEDIA_JSON ? JSON.parse(fs.readFileSync(path.resolve(process.env.MEDIA_JSON), "utf8")) : readJSON("data/media.json", true);
 const LIB = mergeLibraries(readJSON("data/library.json", true), readJSON("data/makkah.json", true));   // library.json + lessons imported from makkahscholars.org
-init(readJSON("catalogue.json"), LIB, readJSON("data/bio.json", true), readJSON("data/media.json", true));
+init(readJSON("catalogue.json"), LIB, readJSON("data/bio.json", true), MEDIA);
 const DB = state.DB;
 
 fs.rmSync(OUT, { recursive: true, force: true });
@@ -23,7 +25,6 @@ const shell = fs.readFileSync(path.join(SRC, "shell.html"), "utf8");
 const fill = (tpl, map) => tpl.replace(/\{\{(\w+)\}\}/g, (_, k) => map[k]);   // single pass: page content is never re-scanned for placeholders
 const render = p => fill(shell, { HEAD: headHtml(p), TOP: chromeTop(p.nav), MAIN: p.html, FOOT: footer(), BOTTOM: chromeBottom(p.nav), ROUTE: p.path });
 const write = (rel, html) => { const f = path.join(OUT, rel); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, html); };
-const MEDIA = readJSON("data/media.json", true);
 write("data/library.json", JSON.stringify(applyMedia(LIB, MEDIA)));   // the one library file browsers load: all sources merged, mirrored links applied
 
 /* routes */

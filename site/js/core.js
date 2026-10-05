@@ -30,9 +30,9 @@ export const SECTIONS = [
   { id: "books",    title: "الكتب",            icon: "book-open",    desc: "مؤلفات الشيخ للقراءة والتحميل." },
 ];
 const UNIT = {};   // numbered-lesson label per series
-export const SPINE = {};
-export const SPINE_PALETTE = ["#1d5a47", "#7d2a1d", "#1f3556", "#8a5a16", "#52305f", "#175561", "#3b3630", "#5a3d1c", "#2f4a2a"];
-export const SPINE_H = [318, 284, 300, 262, 292, 248, 276];
+/* Series covers: a fixed colour per series (COVER) or one from the palette by position. All pass AA with white text. */
+export const COVER = {};
+export const COVER_PALETTE = ["#0f3b2e", "#123c56", "#5a1f2b", "#3b2f63", "#6b4a16", "#1d4f4a", "#2d3a1a", "#47301f", "#14324a"];
 export const PAGE = 60;
 
 /* ───────── Data (filled by init) ─────────  lookup tables have no prototype: "__proto__" is not an id */
@@ -126,7 +126,8 @@ export const secOfLesson = l => secOfSeries(seriesById[l.series]);
 export const seriesOrder = (a, b) => (a.n ?? 1e9) - (b.n ?? 1e9) || (a.o - b.o);
 export const lang = () => "";
 export const thumb = id => `https://i.ytimg.com/vi/${safeYt(id)}/mqdefault.jpg`;
-export const STAR = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 0l2.6 5.4L20.5 3.5l-1.9 5.9L24 12l-5.4 2.6 1.9 5.9-5.9-1.9L12 24l-2.6-5.4-5.9 1.9 1.9-5.9L0 12l5.4-2.6-1.9-5.9 5.9 1.9z"/></svg>`;
+/* the eight-pointed star (two squares): the site's mark */
+export const STAR = `<svg viewBox="0 0 40 40" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="9" y="9" width="22" height="22"/><rect x="9" y="9" width="22" height="22" transform="rotate(45 20 20)"/></g></svg>`;
 
 export function match(l, q) {
   if (!q) return true;

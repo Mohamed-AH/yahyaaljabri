@@ -1,6 +1,6 @@
 /* Browser app. Pages arrive pre-rendered (scripts/build.mjs); this script wires them up and handles client-side navigation. */
-import { init, state, byId, seriesById, secById, ic, safeYt, cleanQuery, oneOf, hashToPath, PAGE, SECTIONS } from "./core.js";
-import { resolve, searchResults, seriesInfo, seriesList } from "./views.js";
+import { init, state, byId, seriesById, secById, ic, safeYt, safeUrl, cleanQuery, oneOf, hashToPath, href, dur, fullTitle, NAME, PAGE, SECTIONS } from "./core.js";
+import { resolve, searchResults, seriesInfo, seriesList, nextLesson, coverColor, speedLabel, SPEEDS } from "./views.js";
 
 const $ = s => document.querySelector(s);
 const app = $("#app"), live = $("#sr-live");
@@ -108,8 +108,6 @@ function wireSearch() {
 }
 
 function wireLesson(w, byNavigation) {
-  const sc = $(".side .scroll"), cur = sc && sc.querySelector(".now");
-  if (cur) sc.scrollTop = cur.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - sc.clientHeight / 2;
   $("#share")?.addEventListener("click", e => { navigator.clipboard?.writeText(location.href); e.currentTarget.innerHTML = ic("check", 17) + " تم النسخ"; });
 
   const lite = $(".player.lite");   // YouTube is only loaded when the visitor presses play (faster, more private)
@@ -117,31 +115,122 @@ function wireLesson(w, byNavigation) {
     const id = safeYt(lite.dataset.yt); if (!id) return;
     const f = document.createElement("iframe");
     f.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0`; f.title = $(".w-title")?.textContent || "";
-    f.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen"; 
+    f.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
     lite.classList.remove("lite"); lite.replaceChildren(f); f.focus();
   });
 
-  const aud = $("#aud");
-  if (aud) {
-    let retried = false;
-    aud.addEventListener("error", () => {   // dead or blocked file: retry once (archive.org nodes fail transiently), then say so
-      if (aud.dataset.alt && aud.src !== aud.dataset.alt) { const t = aud.currentTime; aud.src = aud.dataset.alt; aud.load(); aud.currentTime = t; if (byNavigation) aud.play().catch(() => {}); return; }   // our copy failed: use the original
-      if (!retried) { retried = true; const t = aud.currentTime; setTimeout(() => { aud.load(); aud.currentTime = t; if (byNavigation) aud.play().catch(() => {}); }, 1500); return; }
-      if ($(".ap-err")) return;
-      aud.insertAdjacentHTML("afterend", `<p class="ap-err" role="alert">تعذّر تشغيل هذا التسجيل الآن (الملف غير متاح عند المصدر). ${w.next ? "يمكنك الانتقال إلى الدرس التالي." : ""}</p>`);
-    });
-    if (byNavigation) aud.play().catch(() => {});       // the visitor just clicked a lesson: start it (never on a cold page load)
-    aud.addEventListener("ended", () => { if (w.next) go(w.next); });
-    $(".speeds").addEventListener("click", e => {
-      const b = e.target.closest("button"); if (!b) return;
-      aud.playbackRate = +b.dataset.v;
-      document.querySelectorAll(".speeds button").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-pressed", x === b); });
-    });
+  const lp = $("#lp"), l = lp && byId[lp.dataset.id];
+  if (!l || !l.src) return;
+  $("#aud")?.remove();                                // the native player is only for visitors without JavaScript
+  const mine = () => P.l === l;
+  $("#lp-play").addEventListener("click", () => { if (mine()) toggle(); else load(l, true, saved(l.id)); });
+  $("#lp-back").addEventListener("click", () => { if (!mine()) load(l, false, saved(l.id)); skip(-15); });
+  $("#lp-fwd").addEventListener("click", () => { if (!mine()) load(l, false, saved(l.id)); skip(15); });
+  $("#lp-seek").addEventListener("input", e => { if (!mine()) load(l, false); seekTo(+e.target.value); });
+  lp.querySelector(".speeds").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setRate(+b.dataset.v); });
+  // the visitor just clicked a lesson: start it, unless something else is playing (never on a cold page load)
+  if (byNavigation && !mine() && (!P.l || aud.paused)) load(l, true, saved(l.id));
+  paint();
+}
+
+/* ───────── The docked player: one <audio> for the whole visit ─────────
+   Lesson pages drive it; it keeps playing while the visitor browses, remembers where each lesson stopped (this browser only),
+   moves on to the next lesson of the series, and shows on the lock screen (Media Session). */
+const aud = $("#d-aud"), dock = $("#dock");
+const P = { l: null, retried: false, rate: 1 };
+const store = { get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+const tfmt = s => dur(Math.floor(s || 0)) || "0:00";
+const saved = id => { const t = store.get("pos", {})[id]; return typeof t === "number" && t > 0 ? t : 0; };
+function remember(force) {
+  if (!P.l || (!force && aud.paused)) return;
+  const pos = store.get("pos", {}), t = Math.floor(aud.currentTime || 0), d = aud.duration || P.l.duration || 0;
+  if (d && t > d - 20) delete pos[P.l.id]; else if (t > 5) pos[P.l.id] = t;
+  const keys = Object.keys(pos); if (keys.length > 300) keys.slice(0, keys.length - 300).forEach(k => delete pos[k]);
+  store.set("pos", pos); store.set("last", P.l.id);
+}
+function load(l, play = true, at = 0) {
+  if (P.l !== l) {
+    remember(true);
+    P.l = l; P.retried = false;
+    aud.src = safeUrl(l.src); aud.dataset.alt = l.src_alt ? safeUrl(l.src_alt) : "";
+    aud.preload = "metadata"; aud.load(); aud.playbackRate = P.rate;
+    if (at) aud.addEventListener("loadedmetadata", () => { aud.currentTime = at; paint(); }, { once: true });
+    const s = seriesById[l.series];
+    $("#d-link").href = href.lesson(l.id); $("#d-art").style.setProperty("--c", coverColor(s));
+    $("#d-title").textContent = fullTitle(l); $("#d-sub").textContent = s.title; $("#d-dur").textContent = l.duration ? dur(l.duration) : "";
+    $("#d-seek").max = l.duration || 0;
+    try {
+      if ("mediaSession" in navigator && "MediaMetadata" in window) navigator.mediaSession.metadata = new MediaMetadata({ title: fullTitle(l), artist: NAME, album: s.title });
+    } catch {}
+    store.set("last", l.id);
   }
+  dock.hidden = false; document.body.classList.add("has-dock");
+  if (play) aud.play().catch(() => {});
+  paint();
+}
+const toggle = () => { if (aud.paused) aud.play().catch(() => {}); else aud.pause(); };
+const skip = d => { aud.currentTime = Math.max(0, Math.min((aud.duration || 1e9) - 1, (aud.currentTime || 0) + d)); paint(); };
+const seekTo = t => { aud.currentTime = t; paint(); };
+function setRate(v) {
+  P.rate = SPEEDS.includes(v) ? v : 1; aud.playbackRate = P.rate; store.set("rate", P.rate);
+  $("#d-rate").textContent = speedLabel(P.rate); paint();
+}
+const fill = (el, t, d) => { if (!el) return; el.max = Math.floor(d || 0); if (document.activeElement !== el) el.value = Math.floor(t || 0); el.style.setProperty("--p", (d ? Math.min(100, (t / d) * 100) : 0) + "%"); };
+function paint() {
+  const playing = !!P.l && !aud.paused, t = aud.currentTime || 0, d = aud.duration || P.l?.duration || 0;
+  const btn = (b, on) => { if (!b) return; b.innerHTML = ic(on ? "pause" : "play", b.id === "lp-play" ? 28 : 22); b.setAttribute("aria-label", on ? "إيقاف مؤقت" : "تشغيل"); };
+  if (P.l) { btn($("#d-play"), playing); $("#d-cur").textContent = tfmt(t); fill($("#d-seek"), t, d); }
+  const lp = $("#lp"); if (!lp || !lp.querySelector(".lp-ui")) return;
+  const mine = P.l && lp.dataset.id === P.l.id, l = byId[lp.dataset.id];
+  btn($("#lp-play"), mine && playing);
+  const lt = mine ? t : saved(lp.dataset.id), ld = mine ? d : l?.duration || 0;
+  $("#lp-cur").textContent = tfmt(lt); fill($("#lp-seek"), lt, ld); if (ld) $("#lp-dur").textContent = tfmt(ld);
+  lp.querySelectorAll(".speeds button").forEach(b => { const on = +b.dataset.v === P.rate; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on); });
+}
+let lastSave = 0;
+aud.addEventListener("timeupdate", () => { paint(); if (Date.now() - lastSave > 5000) { lastSave = Date.now(); remember(); } });
+["play", "pause", "loadedmetadata", "ratechange"].forEach(ev => aud.addEventListener(ev, paint));
+aud.addEventListener("pause", () => remember(true));
+aud.addEventListener("ended", () => {
+  const done = P.l; remember(true);
+  const n = done && nextLesson(done);
+  if (!n || !n.src) return paint();
+  load(n, true, saved(n.id));
+  if (location.pathname === href.lesson(done.id)) go(href.lesson(n.id));   // the visitor is on the finished lesson's page: follow along
+});
+aud.addEventListener("error", () => {   // our copy failed: try the original; a transient failure: retry once; then say so
+  if (!P.l || !aud.currentSrc && !aud.src) return;
+  const t = aud.currentTime;
+  if (aud.dataset.alt && aud.src !== aud.dataset.alt) { aud.src = aud.dataset.alt; aud.load(); aud.currentTime = t; aud.play().catch(() => {}); return; }
+  if (!P.retried) { P.retried = true; setTimeout(() => { aud.load(); aud.currentTime = t; aud.play().catch(() => {}); }, 1500); return; }
+  $("#d-sub").textContent = "تعذّر تشغيل هذا التسجيل الآن";
+  const lp = $("#lp"); if (lp && lp.dataset.id === P.l.id && !$(".ap-err")) lp.insertAdjacentHTML("beforeend", `<p class="ap-err" role="alert">تعذّر تشغيل هذا التسجيل الآن. حاول مرة أخرى لاحقًا.</p>`);
+});
+$("#d-play").addEventListener("click", toggle);
+$("#d-back").addEventListener("click", () => skip(-15));
+$("#d-fwd").addEventListener("click", () => skip(15));
+$("#d-seek").addEventListener("input", e => seekTo(+e.target.value));
+$("#d-rate").addEventListener("click", () => setRate(SPEEDS[(SPEEDS.indexOf(P.rate) + 1) % SPEEDS.length]));
+$("#d-x").addEventListener("click", () => { remember(true); aud.pause(); aud.removeAttribute("src"); aud.load(); P.l = null; dock.hidden = true; document.body.classList.remove("has-dock"); store.set("last", ""); paint(); });
+try {
+  const ms = navigator.mediaSession;
+  if (ms) {
+    ms.setActionHandler("play", () => aud.play());
+    ms.setActionHandler("pause", () => aud.pause());
+    ms.setActionHandler("seekbackward", () => skip(-15));
+    ms.setActionHandler("seekforward", () => skip(15));
+    ms.setActionHandler("nexttrack", () => { const n = P.l && nextLesson(P.l); if (n && n.src) load(n, true, saved(n.id)); });
+  }
+} catch {}
+addEventListener("pagehide", () => remember(true));
+function restore() {   // the last lesson listened to comes back in the dock, paused where it stopped
+  P.rate = SPEEDS.includes(store.get("rate", 1)) ? store.get("rate", 1) : 1; $("#d-rate").textContent = speedLabel(P.rate);
+  const l = byId[store.get("last", "")];
+  if (l && l.src && !P.l) load(l, false, saved(l.id));
 }
 
 /* ───────── Chrome: drawer, theme (wired once) ───────── */
-const drawer = $("#drawer"), scrim = $("#scrim"), burger = $("#burger"), pageParts = () => document.querySelectorAll("#app, .top, .foot, .bottom");
+const drawer = $("#drawer"), scrim = $("#scrim"), burger = $("#burger"), pageParts = () => document.querySelectorAll("#app, .top, .foot, .bottom, .dock");
 function setDrawer(open) {
   if (open === drawer.classList.contains("open")) return;
   drawer.classList.toggle("open", open); drawer.setAttribute("aria-hidden", !open); scrim.hidden = !open;
@@ -188,5 +277,6 @@ Promise.all([getJSON("/catalogue.json"), getJSON("/data/library.json"), hasBio ?
   const legacy = () => { if (location.hash.startsWith("#/")) { history.replaceState(null, "", hashToPath(location.hash)); return true; } return false; };   // old shared links (#/watch/ID …)
   legacy();
   addEventListener("hashchange", () => { if (legacy()) route(false); });
+  restore();
   route(true);
 }).catch(() => { /* the pre-rendered page stays as it is; only search/filters/players need the data */ });
