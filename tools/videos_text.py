@@ -33,7 +33,7 @@ def load():
     con.executescript(SCHEMA.read_text(encoding="utf-8"))
     cols = [r[1] for r in con.execute("PRAGMA table_info(videos)") if r[1] not in SKIP]
     n = 0
-    for ln in TXT.read_text(encoding="utf-8").splitlines():
+    for ln in (TXT.read_text(encoding="utf-8").splitlines() if TXT.exists() else []):   # first run: no file yet
         if not ln.strip(): continue
         d = json.loads(ln)
         d["updated_at"] = d.get("created_at", "")

@@ -8,7 +8,7 @@ Arabic website for the lessons, khutab and lectures of **الشيخ يحيى ب�
 - Audio not hosted yet: lesson pages link to the Telegram post (`tg`); `tools/fetch_audio.py` (Telethon with the owner's account, read-only, 4 s pause; or `--export` folders) converts to mono AAC 48 kbps (~40 GB total), uploads to R2 (`yahyaaljabri-media`) and writes `site/data/media.json` keyed by the `tg` URL; `applyMedia` turns that into `src`, and the build limits CSP `media-src` to those hosts. Setup: `docs/audio-hosting.md`. Owner runs it when he has bandwidth.
 - Deploys: Cloudflare Workers Builds from GitHub; `main` is production, every other branch gets a preview at `<branch>-yahyaaljabri.emah84.workers.dev` (e.g. the `redesign` branch).
 - Left out pending a person: 64 untitled recordings + 19 possible other speakers → `data/telegram_overrides.json`.
-- Domain not chosen ("some combination of yahya aljabri"); `SITE` in `core.js` is a placeholder. YouTube lessons not imported yet (`ingest.py` needs channel-id support; needs `YOUTUBE_API_KEY`).
+- Domain not chosen ("some combination of yahya aljabri"); `SITE` in `core.js` is a placeholder. YouTube: `ingest.py` reads the channel by id (config.json), `build_catalogue.py` keeps videos naming the Sheikh and files them in video series `v-<audio series id>` (section duroos); daily Action `youtube-sync.yml` (secret `YOUTUBE_API_KEY` set by the owner 2026-10-05; runs from `main`). Offline test: `python tests/youtube_check.py`.
 - Telegram exports are not committed; set `TELEGRAM_EXPORTS` to their folder.
 
 ## Layout

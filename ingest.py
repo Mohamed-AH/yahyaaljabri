@@ -2,8 +2,8 @@
 """
 Ingest videos from a public YouTube channel into SQLite.
 
-Target channel:
-    @wahatsunnah12
+Target channel: the Sheikh's official channel, by id (config.json "channel_id", or YOUTUBE_CHANNEL_ID);
+a handle (config.json "channel_handle" / YOUTUBE_CHANNEL_HANDLE) works too.
 
 Usage:
     1. Copy .env.example to .env
@@ -18,7 +18,7 @@ The script:
     - fetches full video metadata in batches of 50
     - stores/upserts the results in videos.db
 
-It does NOT decide that every channel video belongs to Sheikh Wasiullah Abbas.
+It does NOT decide that every channel video belongs to the Sheikh.
 Those videos are intentionally left with speaker_status=REVIEW unless
 the configurable speaker rules produce a strong match.
 """
@@ -44,7 +44,7 @@ CONFIG_PATH = BASE_DIR / "config.json"
 PLAYLISTS_PATH = Path(os.environ.get("PLAYLISTS_JSON") or BASE_DIR / "data" / "playlists.json")
 
 API_BASE = os.environ.get("YOUTUBE_API_BASE", "https://www.googleapis.com/youtube/v3")   # override only for offline tests
-DEFAULT_HANDLE = "@wahatsunnah12"
+DEFAULT_HANDLE = ""
 
 
 def load_dotenv(path: Path) -> None:
@@ -65,14 +65,7 @@ def load_config() -> dict:
     if not CONFIG_PATH.exists():
         return {
             "channel_handle": DEFAULT_HANDLE,
-            "speaker_aliases": [
-                "Wasiullah Abbas",
-                "Wasiullah",
-                "وصي الله عباس",
-                "وصی اللہ عباس",
-                "وصی اللہ",
-                "Wasiullah Abbass",
-            ],
+            "speaker_aliases": ["يحيى بن أحمد الجابري", "يحيى الجابري", "يحي الجابري"],
             "excluded_speakers": [],
         }
     return json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
@@ -86,7 +79,7 @@ def api_get(endpoint: str, params: dict) -> dict:
     req = Request(
         url,
         headers={
-            "User-Agent": "SheikhWasiullahLibrary/1.0",
+            "User-Agent": "YahyaAljabriLibrary/1.0",
             "Accept": "application/json",
         },
     )
@@ -148,18 +141,20 @@ def init_db(conn: sqlite3.Connection) -> None:
 
 
 def resolve_channel(config: dict) -> tuple[str, str, str]:
-    handle = os.environ.get("YOUTUBE_CHANNEL_HANDLE") or config.get("channel_handle", DEFAULT_HANDLE)
-    handle = handle.strip()
+    cid = (os.environ.get("YOUTUBE_CHANNEL_ID") or config.get("channel_id") or "").strip()
+    handle = (os.environ.get("YOUTUBE_CHANNEL_HANDLE") or config.get("channel_handle") or DEFAULT_HANDLE).strip()
+    if not cid and not handle:
+        raise RuntimeError("No channel: set channel_id (or channel_handle) in config.json.")
 
     data = api_get("channels", {
         "part": "id,snippet,contentDetails",
-        "forHandle": handle,
+        **({"id": cid} if cid else {"forHandle": handle}),
     })
 
     items = data.get("items", [])
     if not items:
         raise RuntimeError(
-            f"Could not find a YouTube channel for handle {handle!r}."
+            f"Could not find a YouTube channel for {('id ' + cid) if cid else ('handle ' + handle)!r}."
         )
 
     channel = items[0]
@@ -367,8 +362,6 @@ def ingest_videos(
         conn.commit()
         print(f"Processed {count}/{len(video_ids)} videos...", flush=True)
     return seen
-
-    return count
 
 
 def sync_playlists(config: dict) -> None:

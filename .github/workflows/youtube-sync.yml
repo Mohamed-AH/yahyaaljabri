@@ -3,7 +3,8 @@ name: YouTube sync
 # Every day: read the channel through the YouTube Data API, add new lessons to data/videos.jsonl, rebuild site/catalogue.json,
 # and publish. Only lessons whose title names the Sheikh (or that were approved by hand) are published - see docs/youtube-sync.md.
 on:
-  # schedule: turned off until ingest.py supports this channel's id and YOUTUBE_API_KEY is set
+  schedule:
+    - cron: "47 2 * * *"         # daily, 05:47 Riyadh time
   workflow_dispatch:             # "Run workflow" button for a manual run
 
 permissions:

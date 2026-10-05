@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 def dupes(lessons):
-    c = collections.Counter((l["series"], l["n"]) for l in lessons if l.get("n") is not None and l["series"] != "misc")
+    c = collections.Counter((l["series"], l["n"]) for l in lessons if l.get("n") is not None and not l["series"].endswith("misc"))
     return {k for k, v in c.items() if v > 1}
 
 
@@ -29,8 +29,8 @@ def main():
     attention = []
     for a, b in moved[:30]:
         attention.append(f"MOVED `{b['id']}` {b['title'][:70]}: {a['series']} #{a.get('n', '-')} -> {b['series']} #{b.get('n', '-')}")
-    attention += [f"UNMATCHED `{l['id']}` {l['title'][:80]} (no series rule matched; it is listed under general lectures)" for l in added if l["series"] == "misc"][:30]
-    attention += [f"NO NUMBER `{l['id']}` {l['title'][:80]} (series {l['series']})" for l in added if l["series"] != "misc" and l.get("n") is None][:30]
+    attention += [f"UNMATCHED `{l['id']}` {l['title'][:80]} (no series rule matched; it is listed under general lectures)" for l in added if l["series"].endswith("misc")][:30]
+    attention += [f"NO NUMBER `{l['id']}` {l['title'][:80]} (series {l['series']})" for l in added if not l["series"].endswith("misc") and l.get("n") is None][:30]
     attention += [f"DUPLICATE NUMBER {s} #{k} is now used by more than one lesson" for s, k in sorted(dupes(new["lessons"]) - dupes(old["lessons"]))]
     rep = os.environ.get("CATALOGUE_REPORT")
     if rep and Path(rep).exists():
@@ -44,7 +44,7 @@ def main():
     db = sys.argv[3] if len(sys.argv) > 3 else os.environ.get("VIDEOS_DB")
     if db and Path(db).exists():
         rows = sqlite3.connect(db).execute("SELECT COUNT(*) FROM videos WHERE speaker_status='REVIEW'").fetchone()[0]
-        print(f"- videos with status REVIEW in the database: {rows} (only those naming the Sheikh in the title are published)")
+        print(f"- videos with status REVIEW in the database: {rows} (only those naming the Sheikh in the title or description are published)")
     return 0
 
 

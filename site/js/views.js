@@ -29,16 +29,16 @@ export const tiles = (list, cls = "") => `<div class="stiles${cls ? " " + cls : 
 /* a lesson in a list of recent lessons: series artwork, title, series + date, length */
 export function lessonCard(l, i = 0) {
   const s = seriesById[l.series];
-  const heading = useLabel(l) ? `${s.title} — ${label(l)}${l.section ? " · " + l.section : ""}` : fullTitle(l);
+  const heading = useLabel(l) ? `${s.title} — ${label(l)}${l.section ? "، " + l.section : ""}` : fullTitle(l);
   return `<a class="ep" href="${href.lesson(l.id)}" style="--i:${i}"${lang(l)}>${art(s, "mini")}
-    <span class="tt"><span class="t">${esc(heading)}</span><span class="s">${esc(s.title)}${ldate(l) ? " · " + ldate(l) : ""}</span></span>
+    <span class="tt"><span class="t">${esc(heading)}</span><span class="s">${esc(s.title)}${ldate(l) ? "، " + ldate(l) : ""}</span></span>
     ${l.duration ? `<span class="d">${dur(l.duration)}</span>` : ""}<span class="pb" aria-hidden="true">${ic(kindIcon(l) === "video" ? "video" : "play", 18)}</span></a>`;
 }
 export const eps = list => `<div class="eps">${list.map(lessonCard).join("")}</div>`;
 
 export function row(l, opts = {}) {
   const s = seriesById[l.series];
-  const sub = (opts.showSeries ? `${esc(s.title)}` : "") + (opts.showSeries && ldate(l) ? " · " : "") + ldate(l);
+  const sub = (opts.showSeries ? `${esc(s.title)}` : "") + (opts.showSeries && ldate(l) ? "، " : "") + ldate(l);
   return `<a class="row${opts.now ? " now" : ""}" href="${href.lesson(l.id)}" style="--i:${Math.min(opts.i || 0, 24)}"${opts.now ? ' aria-current="page"' : ""}${lang(l)}>
     <span class="no">${l.n != null ? fmtNum(l.n) : ic(opts.now ? "headphones" : kindIcon(l) === "video" ? "video" : "play", 17)}</span>
     <span class="tt"><span class="t">${esc(mainTitle(l, !opts.noSection))}</span><span class="s">${sub}</span></span>
@@ -75,7 +75,7 @@ function home() {
   const latest = DB.lessons.filter(l => l.date).slice(0, 8), f = latest[0], fs = f && seriesById[f.series];
   const bio = state.bio;
   const hours_ = Math.floor(DB.lessons.reduce((a, l) => a + (l.duration || 0), 0) / 36e4) * 100;
-  const feat = f ? `<a class="feat" href="${href.lesson(f.id)}">${art(fs)}<span class="feat-b"><span class="k">أحدث درس${ldate(f) ? " · " + ldate(f) : ""}</span>
+  const feat = f ? `<a class="feat" href="${href.lesson(f.id)}">${art(fs)}<span class="feat-b"><span class="k">أحدث درس${ldate(f) ? "، " + ldate(f) : ""}</span>
       <span class="ft">${esc(fullTitle(f))}</span>${f.duration ? `<span class="m">${ic("clock", 14)} ${dur(f.duration)}</span>` : ""}<span class="go">${ic("play", 17)} استمع الآن</span></span></a>` : "";
   const bandHtml = band(`<div class="hero-t">
       <h1 class="hero-h"><span class="pre">${OFFICIAL_PRE}</span> <span class="nm">${FULL_NAME}</span> <span class="hf">حفظه الله ورعاه</span></h1>
@@ -122,7 +122,7 @@ function sectionPage(id) {
   const c = crumbs([{ t: sec.title }]);
   return mkPage({
     nav: id, path: `/section/${id}/`,
-    band: pageBand(c, secIcon(sec), sec.title, `${sec.desc} — ${fmtNum(ser.length)} سلسلة · ${fmtNum(items.length)} مادة`),
+    band: pageBand(c, secIcon(sec), sec.title, `${sec.desc} — ${fmtNum(ser.length)} سلسلة، ${fmtNum(items.length)} مادة`),
     html: `${head2("السلاسل")}${tiles(ser.slice().sort((a, b) => b.count - a.count), "grid")}
       ${latest.length ? `${head2("أحدث الدروس", more(href.search(`?sec=${id}`), "الكل"))}${eps(latest)}` : ""}`,
     title: withSite(`${sec.title} — ${ser.length} سلسلة`), description: clip(`${sec.desc} ${fmtNum(ser.length)} سلسلة و${fmtNum(items.length)} مادة من ${NAME_FULL}.`, 160),
@@ -167,7 +167,7 @@ function seriesPage(id) {
     <p class="count" id="count" role="status">${fmtNum(list.count)} درسًا</p><div id="out">${list.html}</div>`;
   return mkPage({
     nav: s.sec, path: href.series(s.id), html, wire: { t: "series", id: s.id }, ogType: "website",
-    band: pageBand(c, art(s, "big"), esc(s.title), `${esc(s.description || sec.desc)} — ${fmtNum(s.count)} درسًا${hours(s.seconds) ? " · " + hours(s.seconds) : ""}`,
+    band: pageBand(c, art(s, "big"), esc(s.title), `${esc(s.description || sec.desc)} — ${fmtNum(s.count)} درسًا${hours(s.seconds) ? "، " + hours(s.seconds) : ""}`,
       s.extra ? `<a class="btn" href="${esc(safeUrl(s.extra.url))}" target="_blank" rel="noopener">${ic("external-link", 17)} ${esc(s.extra.label)}</a>` : ""),
     title: withSite(`${s.title} — ${fmtNum(s.count)} درسًا`),
     description: clip(`${s.description ? s.description + " " : ""}${fmtNum(s.count)} درسًا${hours(s.seconds) ? " (" + hours(s.seconds) + ")" : ""} من ${sec.title} — ${NAME_FULL}.`, 160),
@@ -353,7 +353,7 @@ export function chromeTop(nav) {
   const items = navItems();
   const drawerItems = [{ id: "home", t: "الرئيسية", i: "house", h: "/" }, { id: "library", t: "كل الأقسام", i: "layout-grid", h: href.library() }, { id: "search", t: "بحث", i: "search", h: href.search() }, ...extraItems(), ...items];
   return `<header class="top"><div class="wrap top-in">
-    <a class="brand" href="/" aria-label="${esc(NAME_FULL)} — الرئيسية"><span class="mark" aria-hidden="true">${STAR}</span><span><strong>${NAME} <span class="hd">حفظه الله</span></strong><small>الموقع الرسمي · دروس ومحاضرات وخطب</small></span></a>
+    <a class="brand" href="/" aria-label="${esc(NAME_FULL)} — الرئيسية"><span class="mark" aria-hidden="true">${STAR}</span><span><strong>${NAME} <span class="hd">حفظه الله</span></strong><small>الموقع الرسمي، دروس ومحاضرات وخطب</small></span></a>
     <nav class="nav" id="nav" aria-label="الأقسام"><a href="/" data-nav="home"${cur(nav, "home")}>الرئيسية</a>${items.map(x => `<a href="${x.h}" data-nav="${x.id}"${cur(nav, x.id)}>${x.t}</a>`).join("")}</nav>
     <a class="icon-btn" id="hsearch" href="${href.search()}" aria-label="بحث">${ic("search", 19)}</a>
     <button type="button" class="icon-btn" id="theme" aria-label="تبديل الوضع الليلي">${ic("moon", 19)}</button>
@@ -382,7 +382,7 @@ export function chromeBottom(nav) {
     <a class="bn" href="#" role="button" data-nav="more" id="bn-more"><span class="bn-i">${ic("menu", 22)}</span><span>المزيد</span></a></nav>`;
 }
 export const footer = () => `<footer class="foot"><div class="wrap">
-  <p class="foot-official"><span class="mark" aria-hidden="true">${STAR}</span><strong>${esc(OFFICIAL_NAME)} حفظه الله ورعاه</strong>${state.bio ? ` · <a href="${href.about()}">عن الشيخ</a>` : ""}${state.ann.length ? ` · <a href="${href.announcements()}">إعلانات الدروس</a>` : ""}</p>
+  <p class="foot-official"><span class="mark" aria-hidden="true">${STAR}</span><strong>${esc(OFFICIAL_NAME)} حفظه الله ورعاه</strong>${state.bio ? `، <a href="${href.about()}">عن الشيخ</a>` : ""}${state.ann.length ? `، <a href="${href.announcements()}">إعلانات الدروس</a>` : ""}</p>
   <p>المواد الصوتية مأخوذة من <a href="${TG_CHANNEL}" target="_blank" rel="noopener">قنوات الشيخ على تيليجرام</a>.</p>
   <p class="foot-links">${LINKS.map(x => `<a href="${x.h}" target="_blank" rel="noopener">${x.t}</a>`).join("")}</p>
   <p class="foot-up">آخر تحديث للفهرس: ${fmtDate(state.DB.updated)}</p></div></footer>`;
