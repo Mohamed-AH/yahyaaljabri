@@ -157,8 +157,26 @@ def r2_client():
     if not os.environ.get("R2_ENDPOINT") and not re.fullmatch(r"[0-9a-f]{32}", os.environ["R2_ACCOUNT_ID"]):
         sys.exit("R2_ACCOUNT_ID must be the 32-character Cloudflare account ID, not a token.")
     import boto3
+    from botocore.config import Config
     return boto3.client("s3", region_name="auto", aws_access_key_id=os.environ["R2_ACCESS_KEY_ID"], aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"],
-                        endpoint_url=os.environ.get("R2_ENDPOINT") or f"https://{os.environ['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com")
+                        endpoint_url=os.environ.get("R2_ENDPOINT") or f"https://{os.environ['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com",
+                        config=Config(retries={"max_attempts": 10, "mode": "adaptive"}, connect_timeout=30, read_timeout=120))
+
+
+def upload(s3, path, bucket, key, extra, tries=4):
+    """Upload one file; on a home connection a dropped connection is normal, so wait and try again (30 s, 60 s, 90 s).
+    Files up to 100 MB go up in one request (our converted files are 2-30 MB), larger ones in 2 parallel parts."""
+    try:
+        from boto3.s3.transfer import TransferConfig
+        cfg = {"Config": TransferConfig(multipart_threshold=100 * 1024 * 1024, multipart_chunksize=16 * 1024 * 1024, max_concurrency=2)}
+    except ImportError:
+        cfg = {}
+    for n in range(1, tries + 1):
+        try:
+            return s3.upload_file(path, bucket, key, ExtraArgs=extra, **cfg)
+        except Exception as e:
+            if n == tries: raise
+            print(f"\n    upload failed ({type(e).__name__}), retrying in {30 * n} s ...", file=sys.stderr, flush=True); time.sleep(30 * n)
 
 
 def git_publish(n):
@@ -220,8 +238,8 @@ def main(argv=None, source=None, s3=None):
                 print(" uploading ...", file=sys.stderr, flush=True)
                 sha, size = sha256(out), out.stat().st_size
                 key = f"audio/{sha[:16]}.m4a"
-                s3.upload_file(str(out), bucket, key, ExtraArgs={"ContentType": "audio/mp4", "CacheControl": "public, max-age=31536000, immutable",
-                                                                 "Metadata": {"source": l["tg"], "sha256": sha}})
+                upload(s3, str(out), bucket, key, {"ContentType": "audio/mp4", "CacheControl": "public, max-age=31536000, immutable",
+                                                   "Metadata": {"source": l["tg"], "sha256": sha}})
                 if a.keep_dir:
                     Path(a.keep_dir).mkdir(parents=True, exist_ok=True); shutil.copyfile(out, Path(a.keep_dir) / f"{l['id']}.m4a")
                 old = manifest.get(l["tg"], {}).get("key")
