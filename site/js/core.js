@@ -13,6 +13,7 @@ export const TG_CHANNEL = "https://t.me/jabiri";
 export const TG_CHANNEL_2 = "https://t.me/jabrih";
 export const LINKS = [
   { t: "قناة التيليجرام الرسمية", h: TG_CHANNEL }, { t: "قناة التيليجرام الثانية", h: TG_CHANNEL_2 },
+  { t: "مجموعة الواتساب", h: "https://chat.whatsapp.com/LqkA1Gvd8oZEbO3nsFWJWD" },   // as listed in the official channel's posts (t.me/jabiri/4615)
   { t: "قناة يوتيوب", h: YT_CHANNEL }, { t: "تويتر", h: "https://twitter.com/Yahya_aljabri_1" },
   { t: "فيسبوك", h: "https://www.facebook.com/share/1DMLjUVwWn/" }, { t: "كل الحسابات", h: "https://linkfly.to/Skhyahiaaljaberi" },
 ];
