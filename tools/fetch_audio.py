@@ -129,7 +129,10 @@ class TelegramSource:
         msg = self.client.get_messages(channel, ids=msg_id)
         self.last = time.monotonic()
         if not msg or not msg.media: raise LookupError("post not found or has no file")
-        got = self.client.download_media(msg, file=dst)   # Telethon may add an extension to the name
+        def progress(done, total):
+            if total: print(f"\r    downloading {done / 1e6:6.1f} / {total / 1e6:.1f} MB", end="", file=sys.stderr, flush=True)
+        got = self.client.download_media(msg, file=dst, progress_callback=progress)   # Telethon may add an extension to the name
+        print("\r" + " " * 45 + "\r", end="", file=sys.stderr, flush=True)
         self.last = time.monotonic()
         if not got: raise LookupError("download failed")
         if got != dst: shutil.move(got, dst)
@@ -190,8 +193,11 @@ def main(argv=None, source=None, s3=None):
             channel, msg_id = POST.match(l["tg"]).groups()
             raw, out = work / "in", work / "out.m4a"
             try:
+                print(f"  [{i}/{len(todo)}] {l['tg']}  {l['title'][:50]}", file=sys.stderr, flush=True)
                 got += source.fetch(channel, int(msg_id), str(raw))
+                print("    converting ...", end="", file=sys.stderr, flush=True)
                 secs = convert(str(raw), str(out))
+                print(" uploading ...", file=sys.stderr, flush=True)
                 sha, size = sha256(out), out.stat().st_size
                 key = f"audio/{sha[:16]}.m4a"
                 s3.upload_file(str(out), bucket, key, ExtraArgs={"ContentType": "audio/mp4", "CacheControl": "public, max-age=31536000, immutable",
@@ -200,7 +206,7 @@ def main(argv=None, source=None, s3=None):
                     Path(a.keep_dir).mkdir(parents=True, exist_ok=True); shutil.copyfile(out, Path(a.keep_dir) / f"{l['id']}.m4a")
                 manifest[l["tg"]] = {"url": f"{base}/{key}", "key": key, "sha256": sha, "size": size, "duration": secs}
                 save(manifest); done += 1; since_commit += 1
-                print(f"  [{i}/{len(todo)}] {raw.stat().st_size / 1e6:6.1f} -> {size / 1e6:5.1f} MB  {secs // 60:3d} min  {l['tg']}  {l['title'][:50]}", file=sys.stderr)
+                print(f"    done: {raw.stat().st_size / 1e6:.1f} -> {size / 1e6:.1f} MB, {secs // 60} min", file=sys.stderr, flush=True)
                 if a.commit_every and since_commit >= a.commit_every: git_publish(since_commit); since_commit = 0
             except Exception as e:
                 failed.append((l["tg"], f"{type(e).__name__}: {e}")); print(f"  FAILED {l['tg']}: {e}", file=sys.stderr)
