@@ -48,7 +48,7 @@ The script only reads public channel posts, one at a time, with a 4-second pause
 ## What it does with each file
 
 1. Download the original from the post (or copy it from the export folder).
-2. ffmpeg: mono, AAC 48 kbps, loudness −16 LUFS, `faststart` so playback starts before the file finishes downloading. About 21 MB per hour of speech; about 40 GB for the whole library.
+2. ffmpeg: mono, 48 kbps (HE-AAC with `libfdk_aac` when your ffmpeg has it, else AAC), leading silence trimmed, loudness −16 LUFS, `faststart` so playback starts before the file finishes downloading. About 21 MB per hour of speech; about 40 GB for the whole library.
 3. Upload to `audio/<first 16 hex of sha256>.m4a`, cached for a year (the name changes if the content does).
 4. Record `Telegram post -> {url, size, duration}` in `site/data/media.json`.
 

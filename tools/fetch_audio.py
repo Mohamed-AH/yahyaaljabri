@@ -14,7 +14,7 @@
 For each lesson in site/data/library.json that has no audio of ours yet, newest first:
   1. get the file of its Telegram post (t.me/<channel>/<id>) - through your own Telegram account (Telethon, read-only, slow
      on purpose), or from a Telegram Desktop export folder with --export;
-  2. convert it with ffmpeg to mono AAC 48 kbps, loudness-normalised (-16 LUFS), about a third of the original size;
+  2. convert it with ffmpeg to mono 48 kbps (HE-AAC if ffmpeg has libfdk_aac, else AAC), loudness-normalised (-16 LUFS);
   3. upload it to R2 under a content-addressed key (audio/<sha16>.m4a, cached forever);
   4. record  Telegram post -> our URL (+ size, duration) in site/data/media.json.
 The build reads media.json: that lesson then plays on the site instead of linking to Telegram.
@@ -56,10 +56,25 @@ def todo_list(lib, manifest, series=None):
     return sorted(out, key=lambda l: l.get("date", ""), reverse=True)     # newest first: what visitors open most
 
 
+_FDK = None
+
+
+def encoder_args():
+    """HE-AAC (libfdk_aac, 22.05 kHz) when this ffmpeg has it - better speech at 48 kbps; otherwise ffmpeg's own AAC."""
+    global _FDK
+    if _FDK is None:
+        enc = subprocess.run(["ffmpeg", "-hide_banner", "-encoders"], capture_output=True, text=True).stdout
+        _FDK = "libfdk_aac" in enc
+        print("encoder:", "libfdk_aac HE-AAC" if _FDK else "aac (LC)", file=sys.stderr)
+    return ["-c:a", "libfdk_aac", "-profile:a", "aac_he", "-ar", "22050"] if _FDK else ["-c:a", "aac", "-ar", "44100"]
+
+
 def convert(src, dst):
-    """-> duration in seconds. Mono AAC 48 kbps at -16 LUFS, moov atom first so playback starts before the download ends."""
-    subprocess.run(["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-y", "-i", src, "-vn", "-ac", "1", "-ar", "44100",
-                    "-af", "loudnorm=I=-16:TP=-1.5:LRA=11", "-c:a", "aac", "-b:a", "48k", "-movflags", "+faststart", dst], check=True)
+    """-> duration in seconds. Mono 48 kbps, silence at the start trimmed, -16 LUFS, moov atom first so playback starts
+    before the download ends."""
+    subprocess.run(["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-y", "-i", src, "-vn", "-ac", "1",
+                    "-af", "silenceremove=start_periods=1:start_duration=0:start_threshold=-50dB,loudnorm=I=-16:TP=-1.5:LRA=11",
+                    *encoder_args(), "-b:a", "48k", "-movflags", "+faststart", dst], check=True)
     out = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", dst],
                          check=True, capture_output=True, text=True).stdout.strip()
     return int(round(float(out)))
