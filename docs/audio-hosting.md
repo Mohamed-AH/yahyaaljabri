@@ -56,3 +56,6 @@ The build reads `media.json`. The lesson then shows the player and a download bu
 
 ## Re-doing a file
 `python tools/fetch_audio.py --redo https://t.me/jabiri/4607 …` converts and uploads those lessons again and deletes the earlier copy in R2. Voice notes (low-bitrate Opus) are encoded at 24–32 kbps instead of 48 so they don't grow; files hosted before 2026-10-05 evening at 48 kbps can be redone this way.
+
+## Moving the audio to the site's domain
+Connect `media.yaljabri.com` to the bucket (R2, bucket, *Settings*, *Custom Domains*), set `MEDIA_BASE=https://media.yaljabri.com` in `.env`, then run `python tools/fetch_audio.py --relink` and commit `site/data/media.json`. Only the links change; the files stay where they are, and the r2.dev address can be switched off afterwards.

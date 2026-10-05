@@ -180,11 +180,18 @@ def main(argv=None, source=None, s3=None):
     ap.add_argument("--commit-every", type=int, default=0, help="git commit + push media.json every N lessons")
     ap.add_argument("--keep-dir", help="also keep the converted files here (a local backup)")
     ap.add_argument("--redo", nargs="*", default=[], help="convert and upload these lessons again (their t.me links), replacing our copy")
+    ap.add_argument("--relink", action="store_true", help="only rewrite the links in media.json to the current MEDIA_BASE (after moving the bucket to a custom domain); nothing is downloaded or uploaded")
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args(argv)
     load_env()
 
     lib, manifest = json.loads(LIBRARY.read_text(encoding="utf-8")), load_manifest()
+    if a.relink:
+        base = os.environ.get("MEDIA_BASE", "").rstrip("/")
+        if not base.startswith("https://"): sys.exit("set MEDIA_BASE to the new https:// address first")
+        for m in manifest.values(): m["url"] = f"{base}/{m['key']}"
+        save(manifest); print(f"relinked {len(manifest)} lessons to {base}  -> commit site/data/media.json", file=sys.stderr)
+        return 0
     redo = set(a.redo)
     todo = [l for l in lib["lessons"] if l.get("tg") in redo] if redo else todo_list(lib, manifest, a.series)
     print(f"{len(todo)} lessons without our own audio; {len(manifest)} already hosted", file=sys.stderr)
