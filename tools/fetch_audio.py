@@ -94,7 +94,7 @@ class ExportSource:
         return os.path.getsize(dst)
 
 
-CHANNEL_IDS = {"jabiri": "1003885025", "jabrih": "1241666669"}   # @name -> the numeric id Telegram Desktop writes in result.json
+CHANNEL_IDS = {"jabiri": "1003885025", "jabrih": "1241666669", "aljabri013": "1106476361"}   # @name -> the numeric id Telegram Desktop writes in result.json
 
 
 class TelegramSource:

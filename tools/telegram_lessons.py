@@ -1,13 +1,14 @@
 """Merge the two Telegram exports into one de-duplicated lesson list.
 
-Reads  $TELEGRAM_EXPORTS/{jabiri,jabrih}/result.json (Telegram Desktop JSON exports)
+Reads  $TELEGRAM_EXPORTS/{jabiri,jabrih,aljabri013}/result.json (Telegram Desktop JSON exports; a missing one is skipped)
 Writes $TELEGRAM_EXPORTS/lessons.json (input of tools/import_telegram.py)
 """
 import json, os, re, collections
 from datetime import datetime
 
 ROOT = os.environ.get('TELEGRAM_EXPORTS', 'telegram')   # folder with jabiri/result.json and jabrih/result.json
-CHANNELS = ['jabiri', 'jabrih']          # jabiri (official) wins when a file is in both
+CHANNELS = ['jabiri', 'jabrih', 'aljabri013']   # jabiri (official) wins when a file is in both
+QA_CHANNEL = 'aljabri013'                 # «أسئلة وأجوبة»: a question post, then the Sheikh's answer (audio, or a link to it)
 SHEIKH_CHANNELS = {'قناة فضيلة الشيخ يحيى الجابري الرسمية',
                    'قناة الشيخ : يحيى بن أحمد الجابري حفظه الله الثانية',
                    'يحي بن أحمد الجابري'}
@@ -67,7 +68,7 @@ ORDINALS = {'الأول': 1, 'الاول': 1, 'الثاني': 2, 'الثالث':
             'الرابع عشر': 14, 'الخامس عشر': 15, 'السادس عشر': 16, 'السابع عشر': 17, 'الثامن عشر': 18,
             'التاسع عشر': 19, 'العشرون': 20}
 JUNK_NAME = re.compile(r'^(AUD|PTT|audio|VID|WA|Recording|rec|voice|record|\d+$|[\d_\- ]+$)', re.I)
-EMOJI = re.compile('[\U0001F000-\U0001FFFF☀-➿⬀-⯿️‍‏‎●□]')
+EMOJI = re.compile('[\U0001F000-\U0001FFFF☀-➿⬀-⯿■-◿️‍‏‎⁦-⁩]')
 
 
 def text_of(x):
@@ -76,7 +77,7 @@ def text_of(x):
 
 
 def clean(s):
-    s = EMOJI.sub(' ', s or '').replace('_', ' ').replace('ـ', '')
+    s = EMOJI.sub(' ', s or '').replace('_', ' ').replace('ـ', '').replace('ﻯ', 'ى').replace('ﻱ', 'ي')
     s = re.sub(r'[ً-ْ]', '', s)               # diacritics
     return re.sub(r'\s+', ' ', s).strip()
 
@@ -128,6 +129,23 @@ def lesson_no(s):
 JUNK_CAPTION = re.compile(r'^(مقطع صوتي|صوت|تسجيل صوتي|جديد الدروس|جديد التسجيلات|جديد)\b')
 VOICE_BPS = 18300 / 8          # bytes/s of the channels' voice notes (5.66 MB voice = 41:20 m4a, posts 5968/5969)
 WINDOW = 1800                  # an announcement must precede its audio by at most 30 min
+QA_WINDOW = 86400              # ... but a question is answered by the next audio, sometimes hours later
+AUDIO_LINK = re.compile(r'https?://\S*(?:top4top\.net|archive\.org)/\S+\.(?:mp3|m4a|amr|ogg|aac)', re.I)
+
+
+def is_audio(x):
+    return x.get('media_type') in ('audio_file', 'voice_message') or (x.get('mime_type') or '').startswith('audio/')
+
+
+def links_of(x):
+    t = x.get('text')
+    return [] if isinstance(t, str) else [p.get('href') or p.get('text', '') for p in t
+                                          if isinstance(p, dict) and p.get('type') in ('link', 'text_link')]
+
+
+QA_NOISE = re.compile(r'^(?:[\W_]+|و?[أاإ]حسن (?:الله )?[إا]لي(?:كم|ك|كن)|السل\S* عليكم\S*(?: \S*رحم\S*)?(?: \S*ل[لہه]\S*)?(?: \S*برك\S*)?|'
+                      r'حياكم الله|بارك الله فيكم|جزاكم الله خيرا|شيخنا(?: الفاضل)?|يا شيخ(?:نا)?|فضيلة الشيخ|سؤالي|'
+                      r'سائل(?:ة)? (?:يقول|تقول)|يقول|تقول|سـ?/|س/)\s*')
 
 
 def announcement(t):
@@ -153,15 +171,45 @@ BOILER = re.compile(r'العلم اشرف|العلم أشرف|اكرم من يم
                     r'سائل يقول|احسن الله|أحسن الله|^\W*$')
 
 
+def question(t):
+    """The question asked in a Q&A post, without greetings, shortened."""
+    t = re.split(r'═', t.replace('ﻯ', 'ى').replace('ﻱ', 'ي'))[0]          # the question comes before the separator
+    t = re.sub(r'https?://\S+', ' ', t)
+    lines = [clean(x).strip(' 【】[]-:.*') for x in t.split('\n')]
+    lines = [l for l in lines if l and not re.search(r'^\W*الس\W*\d*\W*ؤال|مجموعة أسئلة|^جواب|رابط|للإستماع|للاستماع|للمشاهدة|'
+                                                      r'للتحميل|للإشتراك|للاشتراك|يحيى بن أحمد|حفظه الله', l)]
+    body = re.sub(r'\.{2,}', ' ', ' '.join(lines))
+    body = re.sub(r'^\d+\s*[_\-.)]?\s+', '', body.strip(' *【】'))
+    for _ in range(8):
+        body = QA_NOISE.sub('', body).strip()
+    body = body.replace('【', '').replace('】', '').strip()
+    end = re.search(r'[?؟]', body)
+    body = body[:end.start() + 1] if end and end.start() > 10 else body
+    return (body[:110].rsplit(' ', 1)[0] + '…') if len(body) > 120 else body
+
+
 def desc_title(t):
     """A short title from a describing post: Q&A number + question, the book, or its first real line."""
     c = clean(t).translate(AR_DIGITS)
     q = re.search(r'الس\W*\(?\s*(\d{1,3})\s*\)?\W*ؤال', c)
     if q:
-        body = re.search(r'【\s*([^】]{5,120})', clean(t))
-        return f"السؤال {int(q.group(1))}" + (': ' + body.group(1).strip(' *') if body else '')
+        body = question(t)
+        return f"السؤال {int(q.group(1))}" + (': ' + body if body else '')
+    g = re.search(r'مجموعة أسئلة\W*(\d{1,3})', c)
+    if g:
+        body = question(re.sub(r'^.*?مجموعة أسئلة\W*\d+\W*', '', t.translate(AR_DIGITS), flags=re.S))
+        return f"مجموعة أسئلة {int(g.group(1))}" + (': ' + body if body else '')
+    if re.match(r'\W*(?:سـ?/|س/|أحسن الله إليكم|احسن الله اليكم)', c):
+        body = question(t)
+        if body:
+            return body
+    sura = re.search(r'سورة\s+[^\s()،,]+(?:\s+(?:من|الآيات|آية)\s+[^()]{0,30}?\d+\s*(?:إلى|الى|-)\s*\d+)?', c.replace('ﻯ', 'ى').replace('إلى', ' إلى '))
+    if re.search(r'تلاوة|تلاوه', c) and sura:
+        return 'تلاوة ' + re.sub(r'\s+', ' ', sura.group(0)).strip()
+    if 'لقاء مع' in c:
+        return 'لقاء مع الشيخ' + (' والإجابة على بعض الأسئلة' if re.search(r'الإجابة|الاجابة', c) else '')
     book = announcement(t)[0]
-    lines = [clean(x).strip(' -:.*#©⇦[](){}') for x in (t or '').split('\n')]
+    lines = [clean(x).strip(' -:.*#©⇦[](){}【】') for x in (t or '').split('\n')]
     for i, l in enumerate(lines):                       # "عنوان المحاضرة 🔽" then the title on the next line
         if re.search(r'عنوان|بعنوان', l):
             rest = re.sub(r'.*(?:عنوان المحاضرة|عنوان الخطبة|بعنوان)\s*:?', '', l).strip()
@@ -214,36 +262,51 @@ def merge_same_title(lessons):
     return out
 
 
+def link_post(x, ch):
+    """A text post whose answer/recording is a link to an audio file elsewhere: a lesson whose own post is the description."""
+    t = text_of(x)
+    y = {k: x[k] for k in ('id', 'date', 'date_unixtime')}
+    y.update(_ch=ch, _t='', _link=next(u for u in links_of(x) if AUDIO_LINK.match(u)),
+             _ann=(f"{ch}/{x['id']}", t, announcement(t), True) if desc_title(t) else None)
+    return y
+
+
 def main():
     posts = []
-    for ch in CHANNELS:
+    channels = [ch for ch in CHANNELS if os.path.exists(f'{ROOT}/{ch}/result.json')]
+    for ch in channels:
         msgs = json.load(open(f'{ROOT}/{ch}/result.json'))['messages']
         prev_text = None
         for x in msgs:
             if x.get('type') != 'message':
                 continue
-            if x.get('media_type') not in ('audio_file', 'voice_message'):
+            if not is_audio(x):
                 if text_of(x).strip() and not x.get('file'):
                     prev_text = x
+                    if ch == QA_CHANNEL and any(AUDIO_LINK.match(u) for u in links_of(x)):
+                        posts.append(link_post(x, ch))      # the answer is a link in the post itself
                 continue
             x['_ch'], x['_t'] = ch, text_of(x)
             # the post just before an audio often describes it ("تم التسجيل ..."); keep it if the
             # stated length in it matches the clip
             x['_ann'] = None
-            if prev_text and int(x['date_unixtime']) - int(prev_text['date_unixtime']) <= WINDOW \
+            window = QA_WINDOW if ch == QA_CHANNEL and re.search(r'ؤال|ؤَالُ|مجموعة أسئلة', text_of(prev_text or {'text': ''})) else WINDOW
+            if prev_text and int(x['date_unixtime']) - int(prev_text['date_unixtime']) <= window \
                     and desc_title(text_of(prev_text)):
                 info = announcement(text_of(prev_text))
                 x['_ann'] = (f"{ch}/{prev_text['id']}", text_of(prev_text), info, fits(info[2], x))
             posts.append(x)
+            if ch == QA_CHANNEL:
+                prev_text = None                              # one question per answer
         # an audio with no description before it may be described by the post right after it
     by_id = {(p['_ch'], p['id']): p for p in posts}
-    for ch in CHANNELS:
+    for ch in channels:
         msgs = json.load(open(f'{ROOT}/{ch}/result.json'))['messages']
         last_audio = None
         for x in msgs:
             if x.get('type') != 'message':
                 continue
-            if x.get('media_type') in ('audio_file', 'voice_message'):
+            if is_audio(x):
                 last_audio = by_id[(ch, x['id'])]
                 continue
             t = text_of(x)
@@ -256,7 +319,7 @@ def main():
     # 1) same file (size + duration) posted more than once
     groups = collections.OrderedDict()
     for x in posts:
-        groups.setdefault((x.get('file_size'), x.get('duration_seconds')), []).append(x)
+        groups.setdefault(x.get('_link') or (x.get('file_size'), x.get('duration_seconds')), []).append(x)
     groups = list(groups.values())
     # 2) different files described by the same announcement (voice note + m4a of one lesson)
     parent = list(range(len(groups)))
@@ -280,7 +343,7 @@ def main():
     lessons = []
     for g in merged.values():
         # primary copy: a real audio file with a known length beats a voice note; then the official channel
-        g.sort(key=lambda x: (x.get('media_type') != 'audio_file', not x.get('duration_seconds'),
+        g.sort(key=lambda x: (x.get('media_type') != 'audio_file', not x.get('duration_seconds'), bool(x.get('_link')),
                               CHANNELS.index(x['_ch']), int(x['date_unixtime'])))
         main_post = g[0]
         dur, exact = length(main_post)
@@ -291,7 +354,7 @@ def main():
         good_ann = next((a for a in anns if a[3]), None)
         title, source = '', ''
         for c in caps:
-            title = caption_title(c)
+            title = desc_title(c) if re.search(r'الس\W*\(?\s*\d{1,3}\s*\)?\W*ؤال|مجموعة أسئلة', clean(c)) else caption_title(c)
             if title:
                 source = 'caption'; break
         if not title:
@@ -311,7 +374,7 @@ def main():
                        if rx.search(blob) or rx.search(tb) or rx.search(blob.replace(' ', ''))), ('', '', ''))
         if not series[0] and title:
             series = ('misc', 'دروس ومحاضرات متفرقة', 'lectures')     # titled one-offs: publish, no review
-        if title.startswith('السؤال '):
+        if re.match(r'السؤال |مجموعة أسئلة ', title) or (main_post['_ch'] == QA_CHANNEL and series[0] in ('misc', '') and title):
             series = next((sid, t, sec) for sid, t, sec, rx in SERIES_RE if sid == 'fatawa')
         fwd = sorted({x.get('forwarded_from') for x in g if x.get('forwarded_from')} - SHEIKH_CHANNELS)
         sheikh = bool(re.search(r'يحيى|يحي|الجابري', blob))
@@ -337,7 +400,7 @@ def main():
             'duration_exact': exact,
             'stated_min': round(good_ann[2][2] / 60, 1) if good_ann and good_ann[2][2] else None,
             'size_mb': round(size / 1e6, 1) if size else None,
-            'kind': main_post.get('media_type'),
+            'kind': main_post.get('media_type') or ('link' if main_post.get('_link') else 'audio_file'),
             'file_name': main_post.get('file_name') or '',
             'posts': [f"https://t.me/{x['_ch']}/{x['id']}" for x in g],
             'description_post': f"https://t.me/{good_ann[0]}" if good_ann else '',

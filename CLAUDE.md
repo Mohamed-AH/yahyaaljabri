@@ -4,6 +4,7 @@ Arabic website for the lessons, khutab and lectures of **الشيخ يحيى ب�
 
 ## State (2026-10-04)
 - First version built: 1,875 audio lessons in 38 series from Telegram (t.me/jabiri + t.me/jabrih JSON exports, metadata only), 1,921 pages; e2e 25/25, xss pass, axe 0 violations.
+- 2026-10-05: third channel t.me/aljabri013 («أسئلة وأجوبة», mostly 2017–2019 Q&A: a question post, then the answer as audio or a top4top/archive.org link) imported into series `fatawa`; AMR voice files (no `media_type` in the export) are now read too, which added ~200 missed recordings from the first two channels. Library: 2,387 lessons. Q&A answers posted only as YouTube links are left for the YouTube import.
 - Audio not hosted yet: lesson pages link to the Telegram post (`tg`); `tools/fetch_audio.py` (Telethon with the owner's account, read-only, 4 s pause; or `--export` folders) converts to mono AAC 48 kbps (~40 GB total), uploads to R2 (`yahyaaljabri-media`) and writes `site/data/media.json` keyed by the `tg` URL; `applyMedia` turns that into `src`, and the build limits CSP `media-src` to those hosts. Setup: `docs/audio-hosting.md`. Owner runs it when he has bandwidth.
 - Deploys: Cloudflare Workers Builds from GitHub; `main` is production, every other branch gets a preview at `<branch>-yahyaaljabri.emah84.workers.dev` (e.g. the `redesign` branch).
 - Left out pending a person: 64 untitled recordings + 19 possible other speakers → `data/telegram_overrides.json`.

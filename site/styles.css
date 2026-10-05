@@ -342,7 +342,7 @@ body.lock{overflow:hidden}
   .bottom{display:grid}
   body{padding-bottom:calc(76px + env(safe-area-inset-bottom))}
   #hsearch{display:none}
-  .list.cols{grid-template-columns:1fr}
+  .list.cols{grid-template-columns:minmax(0,1fr)}
   .list.cols .row:nth-child(odd){border-inline-end:0}
   .hero{grid-template-columns:1fr;gap:26px;padding-top:26px;padding-bottom:30px}
   .lesson-band{gap:20px}
