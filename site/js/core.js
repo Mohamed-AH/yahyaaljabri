@@ -148,13 +148,48 @@ export const isFlat = secId => seriesIn(secId).length === 1;   // a section with
 
 /* ───────── URLs (real paths, root-relative) ───────── */
 export const href = {
-  home: () => "/", library: () => "/library/", books: () => "/books/", about: () => "/about/", announcements: () => "/announcements/",
+  home: () => "/", library: () => "/library/", books: () => "/books/", about: () => "/about/", announcements: () => "/announcements/", documents: () => "/tazkiyat/",
   series: id => `/series/${encodeURIComponent(id)}/`,
   lesson: id => `/lesson/${encodeURIComponent(id)}/`,
   search: (qs = "") => "/search/" + qs,
   section: sec => sec.id === "books" ? "/books/" : isFlat(sec.id) ? href.series(seriesIn(sec.id)[0].id) : `/section/${encodeURIComponent(sec.id)}/`,
 };
 export { seriesIn };
+
+/* ───────── Scholars' recommendations (tazkiyat) and written advice ─────────  Files in site/docs/ (from the owner, 2026-10-05).
+   Letters: photos straightened and cleaned; the ID number and the phone numbers are blanked on the 1421 letter and left out of its text.
+   Text = transcription of the letter as written (keep its spelling). Advice PDFs are published unchanged, as their writer sent them. */
+export const DOCS = {
+  tazkiyat: [
+    { id: "tazkiya-1421", title: "تزكية الشيخين أحمد بن يحيى النجمي وزيد بن محمد المدخلي رحمهما الله", by: "الشيخ أحمد بن يحيى النجمي والشيخ زيد بن محمد بن هادي المدخلي", date: "٣ / ١ / ١٤٢١هـ",
+      image: "/docs/tazkiya-1421.jpg", thumb: "/docs/thumb/tazkiya-1421.jpg", w: 1730, h: 2478,
+      note: "حُجب رقم الهوية وأرقام الهواتف.",
+      text: [
+        "بسم الله الرحمن الرحيم",
+        "المملكة العربية السعودية، المكتبة السلفية الخيرية، دورة الشيخ / عبد الله بن محمد القرعاوي رحمه الله العلمية. التاريخ ٣ / ١ / ١٤٢١هـ",
+        "( يحيى بن أحمد بن سلمان الجابري )",
+        "إن المدون اسمه أعلاه من خيار طلبة العلم الذين يرغبون المشاركة في الدعوة إلى الله وحيث إن له ملازمة في دروسنا ونعرف عن مدى استعداده وكفاءته في الوعظ والإرشاد وتعليم عوام الناس والخطابة كتبنا له هذه التزكية إعلاما بالواقع وتعاونا مع الجهات المختصة بالإشراف على عمل الدعاة إلى الله وفق الله الجميع لما فيه رضاه.",
+        "أحمد بن يحيى النجمي — زيد بن محمد بن هادي المدخلي",
+      ] },
+    { id: "tazkiya-1433", title: "تزكية الشيخ زيد بن محمد المدخلي رحمه الله", by: "الشيخ زيد بن محمد بن هادي المدخلي", date: "٢٤ / ٨ / ١٤٣٣هـ",
+      image: "/docs/tazkiya-1433.jpg", thumb: "/docs/thumb/tazkiya-1433.jpg", w: 1710, h: 2440,
+      text: [
+        "بسم الله الرحمن الرحيم",
+        "( يحي بن أحمد بن سلمان الجابري )",
+        "الحمد لله رب العالمين، وصلى الله وسلم وبارك على نبينا محمد الصادق المصدوق الأمين، وعلى آله وصحبه أجمعين.",
+        "أما بعد: فإن الشيخ المدون اسمه أعلاه من طلبة العلم الأخيار، الذين عرفتهم من خلال دراستهم عندي في فنون من العلم، وهو من المعروفين لدينا بحسن أخلاقه وسلامة منهجه، واجتهاده في طلب العلم ونشره.",
+        "ولطلبه مني كتبت له ما بين يدي القارئ، وأوصيه بتقوى الله عز وجل والاستمرار في التحصيل العلمي والعناية بنشره لأنه أعز ميراث وخير ذخر يتقرب به العبد إلى ربه كما أوصيه بالمحافظة على نهج أهل السنة والجماعة في العقيدة والشريعة والتتلمذ على كتبهم والعناية بها ومجانبة أهل البدع ومجانبة المروجين لهم والمدافعين عنهم والحذر من كتبهم.",
+        "وختاماً أسأل الله لي وله التوفيق والسداد والهدى والرشاد وصلى الله وسلم وبارك على النبي محمد وعلى آله وصحبه أجمعين.",
+        "أملاه الفقير إلى عفو ربه وغفرانه: زيد بن محمد بن هادي المدخلي. صامطة في ٢٤ / ٨ / ١٤٣٣هـ",
+      ] },
+  ],
+  wasaya: [
+    { id: "wasaya-1447-11-02", title: "نصائح ووصايا من الشيخ يحيى الجابري", by: "فهد بن علي بن سالم الجابري", date: "الاثنين ٢ / ١١ / ١٤٤٧هـ، جدة",
+      desc: "ما سمعه كاتبها من الشيخ من توجيهات ونصائح ووصايا عند زيارته له.", pdf: "/docs/wasaya-1447-11-02.pdf", pages: 3, thumb: "/docs/thumb/wasaya-1447-11-02.jpg" },
+    { id: "wasiya-aridah-1447-11-06", title: "وصية خاصة من الشيخ يحيى الجابري لأهل العارضة", by: "فهد بن علي بن سالم الجابري", date: "الجمعة ٦ / ١١ / ١٤٤٧هـ، الرياض",
+      desc: "وصية الشيخ لأهل محافظة العارضة بالتعاون مع الشيخ د. حسين بن عبد الله العبدلي والشيخ أحمد بن يحيى بن كردم الجابري في الدعوة إلى الله.", pdf: "/docs/wasiya-aridah-1447-11-06.pdf", pages: 1, thumb: "/docs/thumb/wasiya-aridah-1447-11-06.jpg" },
+  ],
+};
 
 /* Announcement posters (site/data/announcements.json, written by tools/announce_bot.mjs). Only well-formed entries whose
    end date has not passed (Riyadh date) are kept; the image must be one of ours under /ann/. */

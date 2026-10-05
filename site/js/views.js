@@ -3,7 +3,7 @@
 import {
   SITE, NAME, NAME_FULL, OFFICIAL_PRE, FULL_NAME, ROLE, OFFICIAL_NAME, YT_CHANNEL, TG_CHANNEL, LINKS, SECTIONS, COVER, COVER_PALETTE, PAGE, MAXQ,
   state, byId, seriesById, secById, ic, esc, fmtNum, fmtYear, ldate, dur, isoDur, hours, dg, cleanQuery, oneOf, safeUrl, safeYt, safeLang, safeDecode, jsonLd,
-  kindIcon, useLabel, label, mainTitle, fullTitle, secOfSeries, secOfLesson, seriesOrder, lang, thumb, STAR, match, sectionCount, visible, isFlat, seriesIn, href, fmtDate,
+  DOCS, kindIcon, useLabel, label, mainTitle, fullTitle, secOfSeries, secOfLesson, seriesOrder, lang, thumb, STAR, match, sectionCount, visible, isFlat, seriesIn, href, fmtDate,
 } from "./core.js";
 
 const OG_DEFAULT = SITE + "/og/default.png";
@@ -95,6 +95,7 @@ function home() {
   const html = `
     <nav class="chips" aria-label="أقسام المكتبة">${vis.map(s => chip(s, sectionCount(s.id))).join("")}</nav>
     ${state.ann.length ? `${head2("إعلانات الدروس", more(href.announcements(), "كل الإعلانات"))}<div class="posters strip">${state.ann.slice(0, 6).map((a, i) => poster(a, i)).join("")}</div>` : ""}
+    ${head2("التزكيات والوصايا", more(href.documents(), "عرض الكل"))}<div class="posters strip">${docsHome()}</div>
     ${bio ? `<section class="about-teaser" aria-labelledby="ab-h"><h2 id="ab-h">عن الشيخ</h2>${bio.summary ? `<p>${esc(bio.summary)}</p>` : ""}<a class="btn" href="${href.about()}">اقرأ المزيد ${ic("chevron-left", 16)}</a></section>` : ""}
     ${head2("السلاسل", more(href.library(), "كل الأقسام"))}${tiles(top)}
     ${head2("أحدث الدروس", more(href.search(), "الكل"))}${eps(latest)}`;
@@ -293,6 +294,29 @@ function announcementsPage() {
   });
 }
 
+/* Scholars' recommendations (photos + transcription) and written advice (PDFs), from DOCS in core.js */
+const docTile = (d, i) => `<figure class="poster" style="--i:${i}"><a class="poster-img" href="${href.documents()}#${d.id}"><img src="${d.thumb}" alt="${esc(d.title)}" width="560" height="${d.h ? Math.round(d.h * 560 / d.w) : 725}" loading="lazy" decoding="async"></a>
+    <figcaption><span class="t">${esc(d.title)}</span><span class="s">${ic("calendar", 14)} ${esc(d.date)}</span></figcaption></figure>`;
+export const docsHome = () => [...DOCS.tazkiyat, ...DOCS.wasaya].slice(0, 4).map(docTile).join("");
+function documentsPage() {
+  const c = crumbs([{ t: "التزكيات والوصايا" }]);
+  const letter = (d, i) => `<article class="doc" id="${d.id}" style="--i:${i}" aria-labelledby="${d.id}-h">
+      <a class="doc-img" href="${d.image}" target="_blank" rel="noopener" aria-label="عرض الصورة بالحجم الكامل: ${esc(d.title)}"><img src="${d.thumb}" alt="صورة ${esc(d.title)}" width="560" height="${Math.round(d.h * 560 / d.w)}" loading="lazy" decoding="async"></a>
+      <div class="doc-b"><h3 id="${d.id}-h">${esc(d.title)}</h3><p class="doc-m">${ic("calendar", 15)} ${esc(d.date)}</p>
+        <div class="doc-text">${d.text.map(t => `<p>${esc(t)}</p>`).join("")}</div>${d.note ? `<p class="doc-note">${esc(d.note)}</p>` : ""}
+        <div class="btns"><a class="btn" href="${d.image}" target="_blank" rel="noopener">${ic("external-link", 16)} الصورة بالحجم الكامل</a><a class="btn" href="${d.image}" download="${esc(d.title)}.jpg">${ic("download", 16)} تحميل الصورة</a></div></div></article>`;
+  const advice = (d, i) => `<article class="book" id="${d.id}" style="--i:${i}"><a class="doc-pdf" href="${d.pdf}" target="_blank" rel="noopener" aria-label="قراءة: ${esc(d.title)}"><img src="${d.thumb}" alt="" width="560" height="725" loading="lazy" decoding="async"></a>
+      <div class="book-b"><h3>${esc(d.title)}</h3><p class="doc-m">${ic("file-text", 15)} كتبها: ${esc(d.by)}</p><p class="doc-m">${ic("calendar", 15)} ${esc(d.date)}</p>${d.desc ? `<p>${esc(d.desc)}</p>` : ""}
+        <div class="btns"><a class="btn pri" href="${d.pdf}" target="_blank" rel="noopener">${ic("book-open", 16)} قراءة (PDF، ${fmtNum(d.pages)} ${d.pages === 1 ? "صفحة" : "صفحات"})</a><a class="btn sm" href="${d.pdf}" download>${ic("download", 15)} تحميل</a></div></div></article>`;
+  return mkPage({
+    nav: "documents", path: href.documents(),
+    band: pageBand(c, `<span class="sec-ic" aria-hidden="true">${ic("award", 34)}</span>`, "التزكيات والوصايا", "تزكيات أهل العلم للشيخ، ووصاياه التي نقلها عنه طلابه مكتوبة."),
+    html: `<section aria-labelledby="tz-h">${head2('<span id="tz-h">تزكيات أهل العلم للشيخ</span>')}<div class="docs">${DOCS.tazkiyat.map(letter).join("")}</div></section>
+      <section aria-labelledby="ws-h">${head2('<span id="ws-h">وصايا الشيخ مكتوبة</span>')}<div class="books">${DOCS.wasaya.map(advice).join("")}</div></section>`,
+    title: withSite("التزكيات والوصايا"), description: `تزكيات أهل العلم لـ${NAME_FULL}: الشيخ أحمد بن يحيى النجمي والشيخ زيد بن محمد المدخلي رحمهما الله، ووصايا الشيخ المكتوبة.`, jsonld: [c.ld],
+  });
+}
+
 /* Bio text blocks: a string is a paragraph, an array a bullet list, {ol:[…]} a numbered list, {links:[{label,url}]} a list of links.
    Older bio.json files with `paragraphs` + `items` still work. Links: https URLs, or a path on this site (e.g. a PDF under /files/). */
 const aboutLink = x => {
@@ -341,6 +365,7 @@ export function resolve(pathname, params = new URLSearchParams()) {
   else if (segs.length === 1 && a === "books") p = booksPage();
   else if (segs.length === 1 && a === "about") p = aboutPage();
   else if (segs.length === 1 && a === "announcements") p = announcementsPage();
+  else if (segs.length === 1 && a === "tazkiyat") p = documentsPage();
   else if (segs.length === 1 && a === "search") p = searchPage(params);
   else if (segs.length === 2 && a === "section") p = sectionPage(b);
   else if (segs.length === 2 && a === "series") p = seriesPage(b);
@@ -355,7 +380,8 @@ const navItems = () => {
   if (state.bio) items.push({ id: "about", t: "عن الشيخ", i: "book-marked", h: href.about() });
   return items;
 };
-const extraItems = () => state.ann.length ? [{ id: "announcements", t: "إعلانات الدروس", i: "calendar", h: href.announcements(), n: state.ann.length }] : [];
+const extraItems = () => [...(state.ann.length ? [{ id: "announcements", t: "إعلانات الدروس", i: "calendar", h: href.announcements(), n: state.ann.length }] : []),
+  { id: "documents", t: "التزكيات والوصايا", i: "award", h: href.documents() }];
 const cur = (nav, id) => nav === id ? ' class="on" aria-current="page"' : "";
 export function chromeTop(nav) {
   const items = navItems();
@@ -390,7 +416,7 @@ export function chromeBottom(nav) {
     <a class="bn" href="#" role="button" data-nav="more" id="bn-more"><span class="bn-i">${ic("menu", 22)}</span><span>المزيد</span></a></nav>`;
 }
 export const footer = () => `<footer class="foot"><div class="wrap">
-  <p class="foot-official"><span class="mark" aria-hidden="true">${STAR}</span><strong>${esc(OFFICIAL_NAME)} حفظه الله ورعاه</strong>${state.bio ? `، <a href="${href.about()}">عن الشيخ</a>` : ""}${state.ann.length ? `، <a href="${href.announcements()}">إعلانات الدروس</a>` : ""}</p>
+  <p class="foot-official"><span class="mark" aria-hidden="true">${STAR}</span><strong>${esc(OFFICIAL_NAME)} حفظه الله ورعاه</strong>${state.bio ? `، <a href="${href.about()}">عن الشيخ</a>` : ""}${state.ann.length ? `، <a href="${href.announcements()}">إعلانات الدروس</a>` : ""}، <a href="${href.documents()}">التزكيات والوصايا</a></p>
   <p>المواد الصوتية مأخوذة من <a href="${TG_CHANNEL}" target="_blank" rel="noopener">قنوات الشيخ على تيليجرام</a>.</p>
   <p class="foot-links">${LINKS.map(x => `<a href="${x.h}" target="_blank" rel="noopener">${x.t}</a>`).join("")}</p>
   <p class="foot-up">آخر تحديث للفهرس: ${fmtDate(state.DB.updated)}</p></div></footer>`;

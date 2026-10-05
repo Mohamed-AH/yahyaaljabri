@@ -274,6 +274,22 @@ body.has-dock{padding-bottom:80px}
 .book-b p{color:var(--mute);font-size:15px}
 .book-b .note{color:var(--link);font-size:13.5px}
 .book-b .btns{margin:auto 0 0;padding-top:8px}
+/* ───────── Scholars' recommendations and written advice (/tazkiyat/) ───────── */
+.docs{display:flex;flex-direction:column;gap:24px}
+.doc{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:28px;align-items:start;padding:22px;border-radius:20px;background:var(--card);border:1px solid var(--line);animation:rise .55s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0)*45ms);scroll-margin-top:90px}
+.doc-img{display:block;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#fff;box-shadow:var(--shadow);transition:transform .25s}
+.doc-img:hover{transform:translateY(-3px)}
+.doc-img img,.doc-pdf img{display:block;width:100%;height:auto}
+.doc-b h3{font-size:20px;line-height:1.6}
+.doc-m{color:var(--mute);font-size:14.5px;display:flex;align-items:center;gap:6px}
+.doc-text{margin-top:16px;padding-inline-start:18px;border-inline-start:3px solid var(--brass)}
+.doc-text p{margin:0 0 10px;line-height:2.05;font-size:16.5px}
+.doc-note{color:var(--mute);font-size:13.5px;margin-top:6px}
+.doc-b .btns{margin-top:16px}
+.doc-pdf{display:block;aspect-ratio:3/4;overflow:hidden;background:#fff;border-bottom:1px solid var(--line)}
+.doc-pdf img{height:100%;object-fit:cover;object-position:top}
+.book{scroll-margin-top:90px}
+@media (max-width:900px){.doc{grid-template-columns:minmax(0,1fr);padding:16px;gap:16px}.doc-img{max-width:420px}.doc-text p{font-size:16px}}
 .about-teaser{margin:28px 0 0;padding:22px 26px;border-radius:20px;background:var(--card);border:1px solid var(--line)}
 .about-teaser h2{font-size:21px;margin-bottom:4px}
 .about-teaser p{color:var(--mute);margin-bottom:12px}
