@@ -143,7 +143,7 @@ const tfmt = s => dur(Math.floor(s || 0)) || "0:00";
 const saved = id => { const t = store.get("pos", {})[id]; return typeof t === "number" && t > 0 ? t : 0; };
 function remember(force) {
   if (!P.l || (!force && aud.paused)) return;
-  const pos = store.get("pos", {}), t = Math.floor(aud.currentTime || 0), d = aud.duration || P.l.duration || 0;
+  const pos = store.get("pos", {}), t = Math.floor(aud.currentTime || 0), d = fin(aud.duration) || P.l.duration || 0;
   if (d && t > d - 20) delete pos[P.l.id]; else if (t > 5) pos[P.l.id] = t;
   const keys = Object.keys(pos); if (keys.length > 300) keys.slice(0, keys.length - 300).forEach(k => delete pos[k]);
   store.set("pos", pos); store.set("last", P.l.id);
@@ -169,7 +169,8 @@ function load(l, play = true, at = 0) {
   paint();
 }
 const toggle = () => { if (aud.paused) aud.play().catch(() => {}); else aud.pause(); };
-const skip = d => { aud.currentTime = Math.max(0, Math.min((aud.duration || 1e9) - 1, (aud.currentTime || 0) + d)); paint(); };
+const fin = x => (isFinite(x) && x > 0 ? x : 0);   // streamed audio can report Infinity/NaN
+const skip = d => { aud.currentTime = Math.max(0, Math.min((fin(aud.duration) || 1e9) - 1, (aud.currentTime || 0) + d)); paint(); };
 const seekTo = t => { aud.currentTime = t; paint(); };
 function setRate(v) {
   P.rate = SPEEDS.includes(v) ? v : 1; aud.playbackRate = P.rate; store.set("rate", P.rate);
@@ -177,7 +178,7 @@ function setRate(v) {
 }
 const fill = (el, t, d) => { if (!el) return; el.max = Math.floor(d || 0); if (document.activeElement !== el) el.value = Math.floor(t || 0); el.style.setProperty("--p", (d ? Math.min(100, (t / d) * 100) : 0) + "%"); };
 function paint() {
-  const playing = !!P.l && !aud.paused, t = aud.currentTime || 0, d = aud.duration || P.l?.duration || 0;
+  const playing = !!P.l && !aud.paused, t = aud.currentTime || 0, d = fin(aud.duration) || P.l?.duration || 0;
   const btn = (b, on) => { if (!b) return; b.innerHTML = ic(on ? "pause" : "play", b.id === "lp-play" ? 28 : 22); b.setAttribute("aria-label", on ? "إيقاف مؤقت" : "تشغيل"); };
   if (P.l) { btn($("#d-play"), playing); $("#d-cur").textContent = tfmt(t); fill($("#d-seek"), t, d); }
   const lp = $("#lp"); if (!lp || !lp.querySelector(".lp-ui")) return;

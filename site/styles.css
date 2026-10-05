@@ -347,11 +347,11 @@ body.lock{overflow:hidden}
   .hero{grid-template-columns:1fr;gap:26px;padding-top:26px;padding-bottom:30px}
   .lesson-band{gap:20px}
   .lesson-band .art.big{width:150px}
-  .dock{bottom:calc(66px + env(safe-area-inset-bottom));inset-inline:8px;border-radius:16px;border:1px solid var(--night-line);box-shadow:0 10px 26px -10px rgba(0,0,0,.5)}
+  .dock{bottom:calc(78px + env(safe-area-inset-bottom));inset-inline:8px;border-radius:16px;border:1px solid var(--night-line);box-shadow:0 10px 26px -10px rgba(0,0,0,.5)}
   .dock-in{min-height:64px;gap:8px;padding:0 10px}
   .d-l{flex:1}
   .d-pr,#d-fwd,#d-back,.d-rate{display:none}
-  body.has-dock{padding-bottom:calc(150px + env(safe-area-inset-bottom))}
+  body.has-dock{padding-bottom:calc(162px + env(safe-area-inset-bottom))}
 }
 @media(max-width:700px){
   body{font-size:16px}
