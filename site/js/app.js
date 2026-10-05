@@ -1,6 +1,6 @@
 /* Browser app. Pages arrive pre-rendered (scripts/build.mjs); this script wires them up and handles client-side navigation. */
 import { init, setAnnouncements, state, byId, seriesById, secById, ic, safeYt, safeUrl, cleanQuery, oneOf, hashToPath, href, dur, fullTitle, NAME, PAGE, SECTIONS } from "./core.js";
-import { resolve, searchResults, seriesInfo, seriesList, nextLesson, coverColor, speedLabel, SPEEDS } from "./views.js";
+import { resolve, searchResults, seriesInfo, seriesList, nextLesson, ogTitle, coverColor, speedLabel, SPEEDS } from "./views.js";
 
 const $ = s => document.querySelector(s);
 const app = $("#app"), live = $("#sr-live");
@@ -13,8 +13,8 @@ function applyMeta(p) {
   document.title = p.title;
   const set = (sel, attr, v) => { const e = $(sel); if (e) e.setAttribute(attr, v); };
   set("#m-desc", "content", p.description); set("#m-canon", "href", url); set("#m-robots", "content", p.noindex ? "noindex, follow" : "index, follow, max-image-preview:large");
-  set("#og-title", "content", p.title); set("#og-desc", "content", p.description); set("#og-url", "content", url); set("#og-img", "content", p.image); set("#og-type", "content", p.ogType);
-  set("#tw-title", "content", p.title); set("#tw-desc", "content", p.description); set("#tw-img", "content", p.image);
+  set("#og-title", "content", ogTitle(p)); set("#og-desc", "content", p.description); set("#og-url", "content", url); set("#og-img", "content", p.image); set("#og-type", "content", p.ogType);
+  set("#tw-title", "content", ogTitle(p)); set("#tw-desc", "content", p.description); set("#tw-img", "content", p.image);
   const ld = $("#ld"); if (ld) ld.textContent = JSON.stringify(p.jsonld).replace(/</g, "\\u003c");
 }
 function markNav(nav) {

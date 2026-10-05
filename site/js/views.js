@@ -74,7 +74,10 @@ function crumbs(items) {
 const mkPage = o => ({ status: 200, noindex: false, jsonld: [], image: OG_DEFAULT, ogType: "website", nav: "", wire: { t: "none" }, ...o,
   html: `${o.band ? `<div class="band">${o.band}</div>` : ""}<div class="wrap page">${o.html}</div>` });
 const band = (inner, cls = "") => `<div class="wrap band-in${cls ? " " + cls : ""}">${inner}</div>`;
-const withSite = t => `${t} | الموقع الرسمي للشيخ ${NAME.replace(/^الشيخ /, "")}`;
+const SITE_SUFFIX = ` | الموقع الرسمي للشيخ ${NAME.replace(/^الشيخ /, "")}`;
+const withSite = t => t + SITE_SUFFIX;
+/* link previews (WhatsApp, Telegram, X): the page's own title; the site name comes from og:site_name */
+export const ogTitle = p => p.title.endsWith(SITE_SUFFIX) ? p.title.slice(0, -SITE_SUFFIX.length) : p.title;
 
 /* ───────── Pages ───────── */
 function home() {
@@ -223,7 +226,7 @@ function lessonPage(id) {
         ${ext}<button type="button" class="btn" id="share">${ic("link", 17)} نسخ الرابط</button></div>
     <section class="side" aria-labelledby="side-h">${head2(`<span id="side-h">دروس السلسلة</span>`, more(href.series(s.id), `كل الدروس (${fmtNum(sib.length)})`))}
       <div class="list">${win.map(x => row(x, { now: x.id === l.id })).join("")}</div></section>`;
-  const desc = clip(`${l.kind === "audio" ? "تسجيل صوتي" : "درس مرئي"}: ${title}${ldate(l) ? " — " + ldate(l) : ""}. ${NAME_FULL}.`, 160);
+  const desc = clip(`${s.title}${ldate(l) ? "، " + ldate(l) : ""}. ${l.kind === "audio" ? "درس صوتي" : "درس مرئي"} لفضيلة الشيخ ${FULL_NAME} حفظه الله، للاستماع والتحميل.`, 200);
   const ld = l.kind === "audio"
     ? !l.src ? { "@type": "AudioObject", url: tg }
     : { "@type": "AudioObject", contentUrl: safeUrl(l.src), encodingFormat: MIME[(l.src.split("?")[0].split(".").pop() || "").toLowerCase()] || "audio/mpeg" }
@@ -313,7 +316,7 @@ function documentsPage() {
     band: pageBand(c, `<span class="sec-ic" aria-hidden="true">${ic("award", 34)}</span>`, "التزكيات والوصايا", "تزكيات أهل العلم للشيخ، ووصاياه التي نقلها عنه طلابه مكتوبة."),
     html: `<section aria-labelledby="tz-h">${head2('<span id="tz-h">تزكيات أهل العلم للشيخ</span>')}<div class="docs">${DOCS.tazkiyat.map(letter).join("")}</div></section>
       <section aria-labelledby="ws-h">${head2('<span id="ws-h">وصايا الشيخ مكتوبة</span>')}<div class="books">${DOCS.wasaya.map(advice).join("")}</div></section>`,
-    title: withSite("التزكيات والوصايا"), description: `تزكيات أهل العلم لـ${NAME_FULL}: الشيخ أحمد بن يحيى النجمي والشيخ زيد بن محمد المدخلي رحمهما الله، ووصايا الشيخ المكتوبة.`, jsonld: [c.ld],
+    title: withSite("التزكيات والوصايا"), description: `تزكيات أهل العلم ل${NAME_FULL.slice(1)}: الشيخ أحمد بن يحيى النجمي والشيخ زيد بن محمد المدخلي رحمهما الله، ووصايا الشيخ المكتوبة.`, jsonld: [c.ld],
   });
 }
 
@@ -427,10 +430,11 @@ export function headHtml(p) {
 <meta id="m-desc" name="description" content="${esc(p.description)}">
 <link id="m-canon" rel="canonical" href="${esc(url)}">
 <meta id="m-robots" name="robots" content="${p.noindex ? "noindex, follow" : "index, follow, max-image-preview:large"}">
-<meta property="og:site_name" content="${esc(OFFICIAL_NAME)}"><meta property="og:locale" content="ar_AR"><meta id="og-type" property="og:type" content="${p.ogType}">
-<meta id="og-title" property="og:title" content="${esc(p.title)}"><meta id="og-desc" property="og:description" content="${esc(p.description)}">
-<meta id="og-url" property="og:url" content="${esc(url)}"><meta id="og-img" property="og:image" content="${esc(p.image)}">
-<meta name="twitter:card" content="summary_large_image"><meta id="tw-title" name="twitter:title" content="${esc(p.title)}"><meta id="tw-desc" name="twitter:description" content="${esc(p.description)}"><meta id="tw-img" name="twitter:image" content="${esc(p.image)}">
+<meta property="og:site_name" content="${esc(OFFICIAL_NAME)}"><meta property="og:locale" content="ar_SA"><meta id="og-type" property="og:type" content="${p.ogType}">
+<meta id="og-title" property="og:title" content="${esc(ogTitle(p))}"><meta id="og-desc" property="og:description" content="${esc(p.description)}">
+<meta id="og-url" property="og:url" content="${esc(url)}"><meta id="og-img" property="og:image" content="${esc(p.image)}">${p.image === OG_DEFAULT ? `
+<meta property="og:image:type" content="image/png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="${esc(OFFICIAL_NAME)} حفظه الله ورعاه">` : ""}
+<meta name="twitter:card" content="summary_large_image"><meta id="tw-title" name="twitter:title" content="${esc(ogTitle(p))}"><meta id="tw-desc" name="twitter:description" content="${esc(p.description)}"><meta id="tw-img" name="twitter:image" content="${esc(p.image)}">
 <meta name="theme-color" content="#0c231c">
 ${p.jsonld.length ? `<script id="ld" type="application/ld+json">${jsonLd(p.jsonld)}</script>` : '<script id="ld" type="application/ld+json">[]</script>'}`;
 }

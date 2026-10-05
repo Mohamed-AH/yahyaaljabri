@@ -1,7 +1,9 @@
 /* Shared by the browser app and the Node pre-renderer: constants, helpers, data model. No DOM access here. */
 import { ICONS } from "./icons.js";
 
-export const SITE = "https://yahyaaljabri.com";   // placeholder until the domain is chosen
+/* Absolute base for link previews (og:image/og:url), canonical links and the sitemap. Until the domain is chosen it is the
+   Cloudflare address; set SITE_URL in the build environment (or change the default) when the domain is live. */
+export const SITE = ((typeof process !== "undefined" && process.env && process.env.SITE_URL) || "https://yahyaaljabri.emah84.workers.dev").replace(/\/$/, "");
 export const NAME = "الشيخ يحيى بن أحمد الجابري";
 export const NAME_FULL = `${NAME} حفظه الله`;
 export const OFFICIAL_PRE = "الموقع الرسمي لفضيلة الشيخ الوالد";
