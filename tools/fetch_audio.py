@@ -69,15 +69,26 @@ def encoder_args():
     return ["-c:a", "libfdk_aac", "-profile:a", "aac_he", "-ar", "22050"] if _FDK else ["-c:a", "aac", "-ar", "44100"]
 
 
+def target_kbps(src):
+    """48 kbps, but never much above the source: Telegram voice notes are ~18-32 kbps Opus, and 48k AAC would make them
+    2-3x bigger with no gain. Floor 24 kbps (HE-AAC still sounds fine for speech there)."""
+    out = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=bit_rate", "-of", "default=nw=1:nk=1", src],
+                         capture_output=True, text=True).stdout.strip()
+    try: kbps = int(out) / 1000
+    except ValueError: return 48
+    return 48 if kbps >= 56 else 32 if kbps >= 36 else 24
+
+
 def convert(src, dst):
-    """-> duration in seconds. Mono 48 kbps, silence at the start trimmed, -16 LUFS, moov atom first so playback starts
-    before the download ends."""
+    """-> (duration in seconds, kbps). Mono 48 kbps (less for low-bitrate voice notes), silence at the start trimmed,
+    -16 LUFS, moov atom first so playback starts before the download ends."""
+    kbps = target_kbps(src)
     subprocess.run(["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-y", "-i", src, "-vn", "-ac", "1",
                     "-af", "silenceremove=start_periods=1:start_duration=0:start_threshold=-50dB,loudnorm=I=-16:TP=-1.5:LRA=11",
-                    *encoder_args(), "-b:a", "48k", "-movflags", "+faststart", dst], check=True)
+                    *encoder_args(), "-b:a", f"{kbps}k", "-movflags", "+faststart", dst], check=True)
     out = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", dst],
                          check=True, capture_output=True, text=True).stdout.strip()
-    return int(round(float(out)))
+    return int(round(float(out))), kbps
 
 
 def sha256(path):
@@ -168,12 +179,14 @@ def main(argv=None, source=None, s3=None):
     ap.add_argument("--pause", type=float, default=4.0, help="seconds between Telegram requests (default 4)")
     ap.add_argument("--commit-every", type=int, default=0, help="git commit + push media.json every N lessons")
     ap.add_argument("--keep-dir", help="also keep the converted files here (a local backup)")
+    ap.add_argument("--redo", nargs="*", default=[], help="convert and upload these lessons again (their t.me links), replacing our copy")
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args(argv)
     load_env()
 
     lib, manifest = json.loads(LIBRARY.read_text(encoding="utf-8")), load_manifest()
-    todo = todo_list(lib, manifest, a.series)
+    redo = set(a.redo)
+    todo = [l for l in lib["lessons"] if l.get("tg") in redo] if redo else todo_list(lib, manifest, a.series)
     print(f"{len(todo)} lessons without our own audio; {len(manifest)} already hosted", file=sys.stderr)
     if a.dry_run:
         for l in todo[: a.limit or None]: print(f"  {l.get('date', ''):10}  {l['tg']:32}  {l['title'][:70]}")
@@ -196,7 +209,7 @@ def main(argv=None, source=None, s3=None):
                 print(f"  [{i}/{len(todo)}] {l['tg']}  {l['title'][:50]}", file=sys.stderr, flush=True)
                 got += source.fetch(channel, int(msg_id), str(raw))
                 print("    converting ...", end="", file=sys.stderr, flush=True)
-                secs = convert(str(raw), str(out))
+                secs, kbps = convert(str(raw), str(out))
                 print(" uploading ...", file=sys.stderr, flush=True)
                 sha, size = sha256(out), out.stat().st_size
                 key = f"audio/{sha[:16]}.m4a"
@@ -204,9 +217,11 @@ def main(argv=None, source=None, s3=None):
                                                                  "Metadata": {"source": l["tg"], "sha256": sha}})
                 if a.keep_dir:
                     Path(a.keep_dir).mkdir(parents=True, exist_ok=True); shutil.copyfile(out, Path(a.keep_dir) / f"{l['id']}.m4a")
-                manifest[l["tg"]] = {"url": f"{base}/{key}", "key": key, "sha256": sha, "size": size, "duration": secs}
+                old = manifest.get(l["tg"], {}).get("key")
+                manifest[l["tg"]] = {"url": f"{base}/{key}", "key": key, "sha256": sha, "size": size, "duration": secs, "src_size": raw.stat().st_size}
+                if old and old != key: s3.delete_object(Bucket=bucket, Key=old)   # --redo: drop the earlier copy
                 save(manifest); done += 1; since_commit += 1
-                print(f"    done: {raw.stat().st_size / 1e6:.1f} -> {size / 1e6:.1f} MB, {secs // 60} min", file=sys.stderr, flush=True)
+                print(f"    done: {raw.stat().st_size / 1e6:.1f} -> {size / 1e6:.1f} MB ({kbps} kbps), {secs // 60} min", file=sys.stderr, flush=True)
                 if a.commit_every and since_commit >= a.commit_every: git_publish(since_commit); since_commit = 0
             except Exception as e:
                 failed.append((l["tg"], f"{type(e).__name__}: {e}")); print(f"  FAILED {l['tg']}: {e}", file=sys.stderr)

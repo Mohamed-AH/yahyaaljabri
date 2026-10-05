@@ -7,7 +7,7 @@ Run it on your own computer whenever you have bandwidth. It is resumable: stop i
 ## One-time setup
 
 1. **Software:** Python 3.10+, ffmpeg (`brew install ffmpeg` / `apt install ffmpeg` / ffmpeg.org on Windows), then
-   `pip install -r tools/requirements-mirror.txt` (boto3 + telethon).
+   `pip install -r tools/requirements-mirror.txt` (boto3 + telethon). Optional but much faster downloads: `pip install cryptg` (Telethon then decrypts in C instead of Python).
 2. **Telegram API key** (for your own account, free): log in at https://my.telegram.org, open *API development tools*, create an app (any name). Copy `api_id` and `api_hash`.
 3. **R2 bucket:** Cloudflare dashboard, R2, *Create bucket* `yahyaaljabri-media`.
    - Public access: *Settings*, *Custom Domains*, connect e.g. `media.<site domain>` once the domain exists. Until then enable the *r2.dev* public URL and use that.
@@ -53,3 +53,6 @@ The script only reads public channel posts, one at a time, with a 4-second pause
 4. Record `Telegram post -> {url, size, duration}` in `site/data/media.json`.
 
 The build reads `media.json`. The lesson then shows the player and a download button; the Telegram post link stays as a second button. The site's Content-Security-Policy allows audio only from the hosts in `media.json`.
+
+## Re-doing a file
+`python tools/fetch_audio.py --redo https://t.me/jabiri/4607 …` converts and uploads those lessons again and deletes the earlier copy in R2. Voice notes (low-bitrate Opus) are encoded at 24–32 kbps instead of 48 so they don't grow; files hosted before 2026-10-05 evening at 48 kbps can be redone this way.
