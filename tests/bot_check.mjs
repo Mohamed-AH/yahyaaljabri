@@ -26,6 +26,7 @@ const server = http.createServer((req, res) => {
 await new Promise(r => server.listen(0, r));
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), "botcheck-"));
 fs.mkdirSync(path.join(dir, "site", "data"), { recursive: true });
+fs.mkdirSync(path.join(dir, "site", "ann", "thumb"), { recursive: true });   // previews folder made by tools/ann_thumbs.py
 fs.writeFileSync(path.join(dir, "site", "data", "announcements.json"), JSON.stringify([{ id: "old", title: "قديم", image: "/ann/0000000000000000.jpg", until: "2000-01-01" }]));
 const env = { ...process.env, ANN_ROOT: dir, TELEGRAM_API: `http://127.0.0.1:${server.address().port}`, TELEGRAM_BOT_TOKEN: "test", BOT_ADMINS: String(ADMIN), ACK_FILE: path.join(dir, "ack") };
 const run = (...a) => new Promise((res, rej) => { import("node:child_process").then(({ execFile }) => execFile("node", [TOOL, ...a], { env }, (e, out, err) => e ? rej(new Error(err || e.message)) : res(out))); });
@@ -51,5 +52,6 @@ sent = []; updates = [msg(5, ADMIN, { text: "حذف", reply_to_message: { messag
 await run();
 t("«حذف» on the poster removes it", list().length === 0 && sent.some(s => s.text.startsWith("حُذف")));
 t("its image is deleted", !fs.readdirSync(path.join(dir, "site", "ann")).some(f => f.endsWith(".jpg")));
+t("the previews folder is left alone", fs.existsSync(path.join(dir, "site", "ann", "thumb")));
 server.close(); fs.rmSync(dir, { recursive: true, force: true });
 console.log(`${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);

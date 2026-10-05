@@ -128,7 +128,7 @@ async function main() {
   if (changed) {   // images no card uses any more are deleted with it
     writeJSON(DATA, list);
     const used = new Set(list.map(a => path.basename(a.image)));
-    if (fs.existsSync(DIR)) for (const f of fs.readdirSync(DIR)) if (!used.has(f)) fs.unlinkSync(path.join(DIR, f));
+    if (fs.existsSync(DIR)) for (const f of fs.readdirSync(DIR, { withFileTypes: true })) if (f.isFile() && !used.has(f.name)) fs.unlinkSync(path.join(DIR, f.name));   // thumb/ is ann_thumbs.py's
   }
   if (next) fs.writeFileSync(ACK, String(next));
   console.log(`${list.length} announcement(s)${changed ? " (changed)" : ""}`);
