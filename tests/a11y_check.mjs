@@ -6,7 +6,7 @@ import { createRequire } from "node:module";
 const axeSrc = (await import("node:fs")).readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
 
 const BASE = (process.argv[2] || "http://localhost:8000").replace(/\/$/, "");
-const PAGES = ["/", "/library/", "/section/hadith/", "/series/riyad/", "/series/bukhari/", "/series/khutab/", "/lesson/jabiri-2236/", "/search/?q=%D9%85%D8%B3%D9%84%D9%85", "/404.html"];
+const PAGES = ["/", "/announcements/", "/library/", "/section/hadith/", "/series/riyad/", "/series/bukhari/", "/series/khutab/", "/lesson/jabiri-2236/", "/search/?q=%D9%85%D8%B3%D9%84%D9%85", "/404.html"];
 const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
 let total = 0;
 for (const [theme, w, h] of [["light", 1280, 800], ["dark", 1280, 800], ["light", 390, 844], ["dark", 390, 844]]) {

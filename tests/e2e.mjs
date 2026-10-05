@@ -19,8 +19,8 @@ await p.fill('#q','فضل');await p.waitForTimeout(500);
 t('series filter works after hydration',(await p.locator('#out .row').count())<60 && (await p.locator('#out .row').count())>5,await p.locator('#out .row').count());
 // 3. SPA navigation (no reload)
 await p.goto(B+'/');await p.waitForTimeout(1000);await p.evaluate(()=>{window.__nr=1});
-await p.click('.spine >> nth=0');await p.waitForTimeout(700);
-t('spine click -> series URL',/\/series\/[\w-]+\/$/.test(p.url()),p.url());
+await p.click('.stile >> nth=0');await p.waitForTimeout(700);
+t('series tile click -> series URL',/\/series\/[\w-]+\/$/.test(p.url()),p.url());
 t('no full reload on link click',await p.evaluate(()=>window.__nr===1));
 t('title updated',(await p.title()).includes('|'));
 t('canonical updated',(await p.locator('#m-canon').getAttribute('href')).includes('/series/'));
@@ -41,10 +41,16 @@ await p.goto(B+'/');await p.waitForTimeout(1000);await p.fill('#q','التوحي
 t('home search submit -> /search/?q',p.url().includes('/search/?q='),p.url());
 // 7. lesson pages
 await p.goto(B+'/lesson/jabiri-2236/');await p.waitForTimeout(1200);
-t('audio not mirrored yet -> Telegram link',(await p.locator('.audio-panel a').getAttribute('href')).startsWith('https://t.me/'));
+t('audio not mirrored yet -> Telegram link',(await p.locator('#tg-listen').getAttribute('href')).startsWith('https://t.me/'));
 t('sidebar windowed (<=25 rows)',(await p.locator('.side .row').count())<=25);
 await p.click('#next');await p.waitForTimeout(600);t('next lesson via SPA',/\/lesson\/[\w-]+\/$/.test(p.url()) && !p.url().includes('jabiri-2236'),p.url());
 // (no YouTube lessons yet: the video player checks come back with the YouTube import)
+// 7b. announcements: home strip links to the page, which offers full-size posters
+await p.goto(B+'/');await p.waitForTimeout(1000);
+t('home shows announcement posters',(await p.locator('.posters.strip .poster').count())>0);
+await p.click('.posters.strip .poster-img >> nth=0');await p.waitForTimeout(700);
+t('poster -> /announcements/',p.url().startsWith(B+'/announcements/'),p.url());
+t('full-size poster + download',(await p.locator('.posters .poster a[download]').count())>0 && (await p.locator('.posters .poster img').first().getAttribute('src')).startsWith('/ann/'));
 // 8. 404
 const r=await p.goto(B+'/lesson/does-not-exist/');t('unknown lesson -> 404 status',r.status()===404,r.status());
 await p.goto(B+'/lesson/%E0%A4%A/');await p.waitForTimeout(600);t('malformed URL handled',(await p.locator('h1').count())===1);

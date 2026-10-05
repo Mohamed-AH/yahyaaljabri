@@ -36,7 +36,7 @@ export const COVER_PALETTE = ["#0f3b2e", "#123c56", "#5a1f2b", "#3b2f63", "#6b4a
 export const PAGE = 60;
 
 /* ───────── Data (filled by init) ─────────  lookup tables have no prototype: "__proto__" is not an id */
-export const state = { DB: null, bio: null };
+export const state = { DB: null, bio: null, ann: [] };
 export const byId = Object.create(null), seriesById = Object.create(null), secById = Object.create(null);
 
 /* Make our own R2 copy (tools/mirror_media.py -> data/media.json) the primary link and keep the original as src_alt / url_alt.
@@ -147,13 +147,24 @@ export const isFlat = secId => seriesIn(secId).length === 1;   // a section with
 
 /* ───────── URLs (real paths, root-relative) ───────── */
 export const href = {
-  home: () => "/", library: () => "/library/", books: () => "/books/", about: () => "/about/",
+  home: () => "/", library: () => "/library/", books: () => "/books/", about: () => "/about/", announcements: () => "/announcements/",
   series: id => `/series/${encodeURIComponent(id)}/`,
   lesson: id => `/lesson/${encodeURIComponent(id)}/`,
   search: (qs = "") => "/search/" + qs,
   section: sec => sec.id === "books" ? "/books/" : isFlat(sec.id) ? href.series(seriesIn(sec.id)[0].id) : `/section/${encodeURIComponent(sec.id)}/`,
 };
 export { seriesIn };
+
+/* Announcement posters (site/data/announcements.json, written by tools/announce_bot.mjs). Only well-formed entries whose
+   end date has not passed (Riyadh date) are kept; the image must be one of ours under /ann/. */
+export const todayRiyadh = (now = new Date()) => new Date(now.getTime() + 3 * 3600e3).toISOString().slice(0, 10);
+export function setAnnouncements(list, day = todayRiyadh()) {
+  state.ann = (Array.isArray(list) ? list : []).filter(a => a && typeof a.title === "string" && /^\/ann\/[0-9a-f]{16}\.(jpg|png|webp)$/.test(a.image)
+    && (!a.until || (/^\d{4}-\d\d-\d\d$/.test(a.until) && a.until >= day)))
+    .map(a => ({ id: String(a.id || "").replace(/[^0-9a-f]/g, "").slice(0, 16), title: a.title.slice(0, 160), image: a.image, until: a.until || "",
+      thumb: a.image.replace(/^\/ann\/(\w+)\.\w+$/, "/ann/thumb/$1.webp"), w: Number.isInteger(a.w) && a.w > 0 ? a.w : 1131, h: Number.isInteger(a.h) && a.h > 0 ? a.h : 1600 }));
+  return state.ann;
+}
 
 /* old hash URLs (#/watch/ID …) -> new paths, used to keep shared links alive */
 export function hashToPath(hash) {

@@ -1,0 +1,59 @@
+name: Announcements bot
+
+# Every hour: read what the team sent to the site's Telegram bot (announcement posters), save them, drop the ones whose
+# date has passed, and publish (a push to main redeploys the site). Setup: docs/announcements.md.
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:             # "Run workflow" button for a manual run
+
+permissions:
+  contents: write
+
+concurrency:
+  group: telegram-bot
+  cancel-in-progress: false
+
+jobs:
+  bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      BOT_ADMINS: ${{ vars.BOT_ADMINS }}               # comma-separated Telegram user ids allowed to post
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Read the bot's messages
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ]; then echo "::warning::Secret TELEGRAM_BOT_TOKEN is not set: only removing expired announcements."; fi
+          node tools/announce_bot.mjs
+
+      - name: Make previews
+        run: |
+          pip install --quiet pillow
+          python tools/ann_thumbs.py
+
+      - name: Check the site still builds
+        run: node scripts/build.mjs
+
+      - name: Publish
+        run: |
+          git add site/data/announcements.json site/ann
+          if git diff --cached --quiet; then echo "No changes to publish."; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -q -m "Announcements: update from the Telegram bot"
+          git pull -q --rebase origin main
+          git push -q origin HEAD:main
+
+      - name: Mark the messages as handled
+        run: node tools/announce_bot.mjs --ack

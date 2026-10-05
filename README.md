@@ -18,6 +18,7 @@ Telegram Desktop JSON exports ── tools/telegram_lessons.py ──► lessons
 - **Merge.** `python tools/telegram_lessons.py` collapses posts of the same file (size + duration) across both channels, merges a voice note and an m4a of the same lesson, takes each title from the caption, the file name, or the describing post before/after the audio (checked against the length stated in it), and assigns a series from the `SERIES` patterns at the top of the file. Lessons it cannot title, or that look like another speaker, are flagged.
 - **Import.** `python tools/import_telegram.py` writes `site/data/library.json`, leaving out flagged lessons. Fix or approve one in `data/telegram_overrides.json`: `{"jabiri-1234": {"title": "…", "series": "riyad", "publish": true}}`.
 - **Audio.** Until a lesson's audio is in our own storage, its page links to the Telegram post («استمع على تيليجرام»). `tools/fetch_audio.py` downloads the files through your own Telegram account (or takes them from a Telegram Desktop export), converts them to mono AAC 48 kbps and uploads them to R2, recording post -> URL in `site/data/media.json`; the build then shows the player. Setup and usage: [docs/audio-hosting.md](docs/audio-hosting.md).
+- **Announcements.** Lesson posters («إعلانات الدروس») come from a Telegram bot the team sends them to; an hourly GitHub Action saves them and redeploys. See [docs/announcements.md](docs/announcements.md).
 
 ## Run it locally
 
@@ -29,6 +30,9 @@ Tests (Playwright + axe-core; `CHROMIUM=/path/to/chromium` to use an installed b
 
 ```bash
 node tests/e2e.mjs http://localhost:8000 && node tests/xss_check.mjs http://localhost:8000 && node tests/a11y_check.mjs http://localhost:8000
+node tests/bot_check.mjs   # the announcements bot against a fake Telegram API
+# the docked player, with hosted audio faked for the Bukhari series:
+MEDIA_JSON=tests/fixtures/media.json node scripts/build.mjs && node tests/player_check.mjs http://localhost:8000   # rebuild without MEDIA_JSON afterwards
 ```
 
 ## Still to do

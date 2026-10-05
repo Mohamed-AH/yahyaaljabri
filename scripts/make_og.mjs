@@ -6,29 +6,34 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { chromium } from "playwright";
+import { STAR } from "../site/js/core.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const fonts = pathToFileURL(path.join(ROOT, "site", "fonts")).href;
+const pattern = (c, o) => `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='84' viewBox='0 0 56 56'%3E%3Cg fill='none' stroke='%23${c}' stroke-opacity='${o}' stroke-width='1'%3E%3Crect x='17' y='17' width='22' height='22'/%3E%3Crect x='17' y='17' width='22' height='22' transform='rotate(45 28 28)'/%3E%3Cpath d='M0 28h6M50 28h6M28 0v6M28 50v6'/%3E%3C/g%3E%3C/svg%3E")`;
 const html = `<!doctype html><meta charset="utf-8"><style>
-@font-face{font-family:Aref;src:url(${fonts}/aref-ruqaa-arabic-700-normal.woff2)}
-@font-face{font-family:Aref;font-weight:400;src:url(${fonts}/aref-ruqaa-arabic-400-normal.woff2)}
-@font-face{font-family:Naskh;src:url(${fonts}/noto-naskh-arabic-arabic-500-normal.woff2)}
-*{box-sizing:border-box}body{margin:0;width:1200px;height:630px;direction:rtl;position:relative;overflow:hidden;color:#2b1d12;
- background:radial-gradient(900px 420px at 50% -10%,rgba(214,169,58,.35),transparent 70%),
- url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Cg fill='none' stroke='%23a8791c' stroke-opacity='.2'%3E%3Crect x='14' y='14' width='44' height='44'/%3E%3Crect x='14' y='14' width='44' height='44' transform='rotate(45 36 36)'/%3E%3Ccircle cx='36' cy='36' r='9'/%3E%3C/g%3E%3C/svg%3E"),#f1e5c8}
-.frame{position:absolute;inset:26px;border:2px solid #a8791c;outline:1px solid #a8791c;outline-offset:8px}
-.seal{position:absolute;top:70px;left:50%;margin-left:-38px;width:76px;height:76px}
-.seal i,.seal b{position:absolute;inset:8px;background:#a8321f;border-radius:7px}.seal b{transform:rotate(45deg)}
-.bism{position:absolute;top:150px;width:100%;text-align:center;font:400 40px Aref;color:#a8321f}
-h1{position:absolute;top:236px;width:100%;margin:0;text-align:center;font:700 112px/1.2 Aref}
-h1 em{font-style:normal;color:#a8321f}
-.dua{position:absolute;top:386px;width:100%;text-align:center;font:400 54px Aref;color:#a8321f}
-.sub{position:absolute;top:482px;width:100%;text-align:center;font:500 34px Naskh;color:#5b4630}
-.url{position:absolute;bottom:58px;width:100%;text-align:center;font:600 26px Naskh;color:#a8791c;letter-spacing:2px;direction:ltr}
-</style><div class="frame"></div><div class="seal"><i></i><b></b></div>
-<div class="bism">بسم الله الرحمن الرحيم</div>
-<h1>الشيخ <em>يحيى</em> بن أحمد الجابري</h1><div class="dua">حفظه الله ورعاه</div>
-<div class="sub">دروس · محاضرات · خطب</div><div class="url">الموقع الرسمي</div>`;
+@font-face{font-family:Tajawal;font-weight:400;src:url(${fonts}/tajawal-arabic-400-normal.woff2)}
+@font-face{font-family:Tajawal;font-weight:700;src:url(${fonts}/tajawal-arabic-700-normal.woff2)}
+@font-face{font-family:Amiri;font-weight:700;src:url(${fonts}/amiri-arabic-700-subset.woff2)}
+*{box-sizing:border-box}body{margin:0;width:1200px;height:630px;direction:rtl;position:relative;overflow:hidden;color:#eef3ef;font-family:Tajawal;
+ background:${pattern("d4ae58", .1)},#0c231c;background-size:84px}
+.mark{position:absolute;top:84px;right:96px;width:84px;height:84px;color:#d4ae58}
+.pre{position:absolute;top:196px;right:96px;font:700 36px Tajawal;color:#d4ae58}
+h1{position:absolute;top:244px;right:96px;margin:0;font:700 96px/1.3 Amiri}
+.dua{position:absolute;top:404px;right:96px;font:400 40px Tajawal;color:#a9bdb4}
+.sub{position:absolute;bottom:70px;right:96px;font:400 30px Tajawal;color:#eef3ef}
+.sub b{color:#d4ae58;font-weight:700}
+.art{position:absolute;left:70px;top:160px;width:300px;height:300px;border-radius:36px;background:${pattern("ffffff", .12)},#123c56;background-size:84px;box-shadow:0 30px 60px -20px rgba(0,0,0,.6);transform:rotate(-4deg)}
+.art2{left:120px;top:140px;background-color:#5a1f2b;transform:rotate(5deg)}
+.art3{left:95px;top:165px;background-color:#1d4f4a;transform:none}
+.art svg{position:absolute;top:28px;right:28px;width:56px;height:56px;color:#d4ae58}
+.art span{position:absolute;bottom:34px;right:34px;left:34px;font:700 38px/1.35 Tajawal;color:#fff}
+</style>
+<div class="art art2"></div><div class="art"></div><div class="art art3">${STAR}<span>شرح صحيح البخاري</span></div>
+<div class="mark">${STAR}</div>
+<div class="pre">الموقع الرسمي لفضيلة الشيخ الوالد</div>
+<h1>يحيى بن أحمد الجابري</h1><div class="dua">حفظه الله ورعاه</div>
+<div class="sub"><b>دروس</b> · محاضرات · خطب · للاستماع والتحميل</div>`;
 const tmp = path.join(os.tmpdir(), "og-default.html");
 fs.writeFileSync(tmp, html);
 const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});

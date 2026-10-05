@@ -47,6 +47,11 @@ export function row(l, opts = {}) {
 const chip = (s, n) => `<a class="chip" href="${href.section(s)}">${ic(s.icon, 18)}<span>${s.title}</span><small>${fmtNum(n)}</small></a>`;
 const tile = (s, n) => `<a class="tile" href="${href.section(s)}"><span class="tile-ic">${ic(s.icon, 24)}</span>
     <span class="tile-b"><strong>${s.title}</strong><span>${s.desc}</span></span><span class="tile-n">${fmtNum(n)}</span></a>`;
+/* announcement posters: a strip on the home page, a grid on /announcements/ */
+const poster = (a, i = 0, big = false) => `<figure class="poster" id="a-${a.id}" style="--i:${i}">
+    <a class="poster-img" href="${big ? a.image : href.announcements() + "#a-" + a.id}"${big ? ' target="_blank" rel="noopener"' : ""}><img src="${big ? a.image : a.thumb}" alt="${esc(a.title)}" width="${a.w}" height="${a.h}" loading="lazy" decoding="async"></a>
+    <figcaption><span class="t">${esc(a.title)}</span>${a.until ? `<span class="s">${ic("calendar", 14)} حتى ${fmtDate(a.until)}</span>` : ""}
+    ${big ? `<a class="btn sm" href="${a.image}" download>${ic("download", 15)} تحميل الإعلان</a>` : ""}</figcaption></figure>`;
 const head2 = (t, link) => `<div class="sec"><h2>${t}</h2>${link || ""}</div>`;
 const more = (h, t) => `<a href="${h}">${t} ${ic("chevron-left", 15)}</a>`;
 
@@ -80,7 +85,8 @@ function home() {
       <ul class="stats"><li><b>${fmtNum(DB.lessons.length)}</b>مادة صوتية</li><li><b>${fmtNum(DB.series.length)}</b>سلسلة علمية</li>${hours_ ? `<li><b>${fmtNum(hours_)}</b>ساعة وأكثر</li>` : ""}${DB.books.length ? `<li><b>${fmtNum(DB.books.length)}</b>كتابًا</li>` : ""}</ul></div>
     ${feat}`, "hero");
   const html = `
-    <nav class="chips" aria-label="الأقسام">${vis.map(s => chip(s, sectionCount(s.id))).join("")}</nav>
+    <nav class="chips" aria-label="أقسام المكتبة">${vis.map(s => chip(s, sectionCount(s.id))).join("")}</nav>
+    ${state.ann.length ? `${head2("إعلانات الدروس", more(href.announcements(), "كل الإعلانات"))}<div class="posters strip">${state.ann.slice(0, 6).map((a, i) => poster(a, i)).join("")}</div>` : ""}
     ${bio ? `<section class="about-teaser" aria-labelledby="ab-h"><h2 id="ab-h">عن الشيخ</h2>${bio.summary ? `<p>${esc(bio.summary)}</p>` : ""}<a class="btn" href="${href.about()}">اقرأ المزيد ${ic("chevron-left", 16)}</a></section>` : ""}
     ${head2("السلاسل", more(href.library(), "كل الأقسام"))}${tiles(top)}
     ${head2("أحدث الدروس", more(href.search(), "الكل"))}${eps(latest)}`;
@@ -238,7 +244,8 @@ function searchPage(params) {
   const vis = visible().filter(s => s.id !== "books"), c = crumbs([{ t: "بحث" }]);
   return mkPage({
     nav: "search", path: "/search/", noindex: true, wire: { t: "search" },
-    html: `${c.html}<h1 class="page-h">البحث في المكتبة</h1>
+    band: pageBand(c, `<span class="sec-ic" aria-hidden="true">${ic("search", 34)}</span>`, "البحث في المكتبة", ""),
+    html: `
       <div class="bar">${searchBox("ابحث في كل الدروس والمحاضرات…", st.q)}
         <select id="sort" aria-label="الترتيب"><option value="new">الأحدث أولًا</option><option value="old"${st.sort === "old" ? " selected" : ""}>الأقدم أولًا</option></select></div>
       <div class="pill-row" id="secs" role="group" aria-label="تصفية حسب القسم"><button type="button" class="pill${st.sec ? "" : " on"}" aria-pressed="${!st.sec}" data-s="">الكل</button>${vis.map(s => `<button type="button" class="pill${st.sec === s.id ? " on" : ""}" aria-pressed="${st.sec === s.id}" data-s="${s.id}">${s.title}</button>`).join("")}</div>
@@ -265,6 +272,16 @@ function booksPage() {
     band: pageBand(c, `<span class="sec-ic" aria-hidden="true">${ic("book-open", 34)}</span>`, "الكتب", `${secById.books.desc} — ${fmtNum(DB.books.length)} كتابًا`),
     html: `${groups.map(g => `<section>${head2(esc(g.g))}<div class="books">${g.items.map(card).join("")}</div></section>`).join("")}`,
     title: withSite(`الكتب — ${fmtNum(DB.books.length)} كتابًا للقراءة والتحميل`), description: `مؤلفات ${NAME_FULL} وتحقيقاته وبحوثه للقراءة والتحميل (PDF).`, jsonld: [c.ld],
+  });
+}
+
+function announcementsPage() {
+  const c = crumbs([{ t: "الإعلانات" }]), list = state.ann;
+  return mkPage({
+    nav: "announcements", path: href.announcements(),
+    band: pageBand(c, `<span class="sec-ic" aria-hidden="true">${ic("calendar", 34)}</span>`, "إعلانات الدروس", "مواعيد دروس الشيخ وأماكنها. اضغط على الإعلان لعرضه بالحجم الكامل."),
+    html: list.length ? `<div class="posters">${list.map((a, i) => poster(a, i, true)).join("")}</div>` : `<p class="empty">لا توجد إعلانات حالية.</p>`,
+    title: withSite("إعلانات الدروس"), description: `مواعيد دروس ${NAME_FULL} وأماكنها.`, jsonld: [c.ld],
   });
 }
 
@@ -315,6 +332,7 @@ export function resolve(pathname, params = new URLSearchParams()) {
   else if (segs.length === 1 && a === "library") p = library();
   else if (segs.length === 1 && a === "books") p = booksPage();
   else if (segs.length === 1 && a === "about") p = aboutPage();
+  else if (segs.length === 1 && a === "announcements") p = announcementsPage();
   else if (segs.length === 1 && a === "search") p = searchPage(params);
   else if (segs.length === 2 && a === "section") p = sectionPage(b);
   else if (segs.length === 2 && a === "series") p = seriesPage(b);
@@ -329,10 +347,11 @@ const navItems = () => {
   if (state.bio) items.push({ id: "about", t: "عن الشيخ", i: "book-marked", h: href.about() });
   return items;
 };
+const extraItems = () => state.ann.length ? [{ id: "announcements", t: "إعلانات الدروس", i: "calendar", h: href.announcements(), n: state.ann.length }] : [];
 const cur = (nav, id) => nav === id ? ' class="on" aria-current="page"' : "";
 export function chromeTop(nav) {
   const items = navItems();
-  const drawerItems = [{ id: "home", t: "الرئيسية", i: "house", h: "/" }, { id: "library", t: "كل الأقسام", i: "layout-grid", h: href.library() }, { id: "search", t: "بحث", i: "search", h: href.search() }, ...items];
+  const drawerItems = [{ id: "home", t: "الرئيسية", i: "house", h: "/" }, { id: "library", t: "كل الأقسام", i: "layout-grid", h: href.library() }, { id: "search", t: "بحث", i: "search", h: href.search() }, ...extraItems(), ...items];
   return `<header class="top"><div class="wrap top-in">
     <a class="brand" href="/" aria-label="${esc(NAME_FULL)} — الرئيسية"><span class="mark" aria-hidden="true">${STAR}</span><span><strong>${NAME} <span class="hd">حفظه الله</span></strong><small>الموقع الرسمي · دروس ومحاضرات وخطب</small></span></a>
     <nav class="nav" id="nav" aria-label="الأقسام"><a href="/" data-nav="home"${cur(nav, "home")}>الرئيسية</a>${items.map(x => `<a href="${x.h}" data-nav="${x.id}"${cur(nav, x.id)}>${x.t}</a>`).join("")}</nav>
@@ -363,7 +382,7 @@ export function chromeBottom(nav) {
     <a class="bn" href="#" role="button" data-nav="more" id="bn-more"><span class="bn-i">${ic("menu", 22)}</span><span>المزيد</span></a></nav>`;
 }
 export const footer = () => `<footer class="foot"><div class="wrap">
-  <p class="foot-official"><span class="mark" aria-hidden="true">${STAR}</span><strong>${esc(OFFICIAL_NAME)} حفظه الله ورعاه</strong>${state.bio ? ` · <a href="${href.about()}">عن الشيخ</a>` : ""}</p>
+  <p class="foot-official"><span class="mark" aria-hidden="true">${STAR}</span><strong>${esc(OFFICIAL_NAME)} حفظه الله ورعاه</strong>${state.bio ? ` · <a href="${href.about()}">عن الشيخ</a>` : ""}${state.ann.length ? ` · <a href="${href.announcements()}">إعلانات الدروس</a>` : ""}</p>
   <p>المواد الصوتية مأخوذة من <a href="${TG_CHANNEL}" target="_blank" rel="noopener">قنوات الشيخ على تيليجرام</a>.</p>
   <p class="foot-links">${LINKS.map(x => `<a href="${x.h}" target="_blank" rel="noopener">${x.t}</a>`).join("")}</p>
   <p class="foot-up">آخر تحديث للفهرس: ${fmtDate(state.DB.updated)}</p></div></footer>`;

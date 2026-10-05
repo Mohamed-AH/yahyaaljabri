@@ -4,7 +4,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { init, applyMedia, mergeLibraries, state, SITE, byId, seriesById, SECTIONS, secById, isFlat, href } from "../site/js/core.js";
+import { init, setAnnouncements, applyMedia, mergeLibraries, state, SITE, byId, seriesById, SECTIONS, secById, isFlat, href } from "../site/js/core.js";
 import { resolve, notFoundPage, chromeTop, chromeBottom, footer, headHtml } from "../site/js/views.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -17,6 +17,7 @@ const MEDIA = process.env.MEDIA_JSON ? JSON.parse(fs.readFileSync(path.resolve(p
 const LIB = mergeLibraries(readJSON("data/library.json", true), readJSON("data/makkah.json", true));   // library.json + lessons imported from makkahscholars.org
 init(readJSON("catalogue.json"), LIB, readJSON("data/bio.json", true), MEDIA);
 const DB = state.DB;
+setAnnouncements(readJSON("data/announcements.json", true));   // posters whose end date has passed are left out
 
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.cpSync(SRC, OUT, { recursive: true, filter: s => !/[\\/]shell\.html$/.test(s) && !/[\\/]data[\\/]media\.json$/.test(s) && !/[\\/]data[\\/]makkah\.json$/.test(s) });   // the manifest stays out of dist: the merged library below carries the mirrored links
@@ -36,6 +37,7 @@ write("data/library.json", JSON.stringify(applyMedia(LIB, MEDIA)));   // the one
 const routes = ["/", "/library/", "/search/"];
 if (DB.books.length) routes.push("/books/");
 if (state.bio) routes.push("/about/");
+routes.push("/announcements/");
 for (const s of SECTIONS) if (s.id !== "books" && !isFlat(s.id) && DB.series.some(x => x.sec === s.id)) routes.push(`/section/${s.id}/`);
 for (const s of DB.series) routes.push(href.series(s.id));
 for (const l of DB.lessons) routes.push(href.lesson(l.id));
