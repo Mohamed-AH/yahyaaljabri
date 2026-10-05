@@ -20,6 +20,14 @@ export const coverColor = s => COVER[s.id] || COVER_PALETTE[Math.max(0, state.DB
 export const art = (s, cls = "") => `<span class="art${cls ? " " + cls : ""}" style="--c:${coverColor(s)}" aria-hidden="true">${/\bmini\b/.test(cls) ? ""
   : `${STAR.replace("<svg", '<svg class="art-s"')}<span class="art-t">${esc(s.title)}</span><span class="art-n">${fmtNum(s.count)} درسًا</span>`}</span>`;
 
+/* Our R2 copies download through the site's /dl/ route (worker/index.js), which saves them under the lesson title;
+   anything else keeps the plain link. */
+const dlLink = (src, title) => {
+  const m = /\/audio\/([0-9a-f]{16})\.m4a$/.exec(String(src || ""));
+  return m ? `<a class="btn" href="/dl/${m[1]}?n=${esc(encodeURIComponent(title))}" download>${ic("download", 17)} تحميل</a>`
+           : `<a class="btn" href="${esc(safeUrl(src))}" download target="_blank" rel="noopener">${ic("download", 17)} تحميل</a>`;
+};
+
 export function seriesTile(s, i = 0) {
   return `<a class="stile" href="${href.series(s.id)}" style="--i:${i}" aria-label="${esc(s.title)}، ${fmtNum(s.count)} درسًا">${art(s)}
     <span class="stile-m" aria-hidden="true"><span>${secOfSeries(s).title}</span>${hours(s.seconds) ? `<span>${hours(s.seconds)}</span>` : ""}</span></a>`;
@@ -201,7 +209,7 @@ function lessonPage(id) {
   const ext = l.kind === "audio" && !l.src
     ? (tg ? `<a class="btn" href="${esc(tg)}" target="_blank" rel="noopener">${ic("external-link", 17)} المنشور على تيليجرام</a>` : "")
     : l.kind === "audio"
-    ? `<a class="btn" href="${esc(safeUrl(l.src))}" download target="_blank" rel="noopener">${ic("download", 17)} تحميل</a>` + (tg ? `<a class="btn" href="${esc(tg)}" target="_blank" rel="noopener">${ic("external-link", 17)} المنشور على تيليجرام</a>` : "")
+    ? dlLink(l.src, title) + (tg ? `<a class="btn" href="${esc(tg)}" target="_blank" rel="noopener">${ic("external-link", 17)} المنشور على تيليجرام</a>` : "")
     : `<a class="btn" href="https://www.youtube.com/watch?v=${safeYt(l.id)}" target="_blank" rel="noopener">${ic("external-link", 17)} فتح في يوتيوب</a>`;
   const c = crumbs(flat ? [{ t: sec.title, h: href.series(s.id) }, { t: title }] : [{ t: sec.title, h: href.section(sec) }, { t: s.title, h: href.series(s.id) }, { t: title }]);
   const bandHtml = band(`<a class="lart" href="${href.series(s.id)}" aria-label="${esc(s.title)}">${art(s, "big")}</a><div class="pb-t">${c.html}
