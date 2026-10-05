@@ -157,19 +157,19 @@ export const href = {
 export { seriesIn };
 
 /* ───────── Scholars' recommendations (tazkiyat) and written advice ─────────  Files in site/docs/ (from the owner, 2026-10-05).
-   Letters: photos straightened and cleaned; the ID number and the phone numbers are blanked on the 1421 letter and left out of its text.
+   Letters: photos straightened and cleaned; shown in full (the owner wants the ID and the scholars' numbers kept, 2026-10-05).
    Text = transcription of the letter as written (keep its spelling). Advice PDFs are published unchanged, as their writer sent them. */
 export const DOCS = {
   tazkiyat: [
     { id: "tazkiya-1421", title: "تزكية الشيخين أحمد بن يحيى النجمي وزيد بن محمد المدخلي رحمهما الله", by: "الشيخ أحمد بن يحيى النجمي والشيخ زيد بن محمد بن هادي المدخلي", date: "٣ / ١ / ١٤٢١هـ",
       image: "/docs/tazkiya-1421.jpg", thumb: "/docs/thumb/tazkiya-1421.jpg", w: 1730, h: 2478,
-      note: "حُجب رقم الهوية وأرقام الهواتف.",
       text: [
         "بسم الله الرحمن الرحيم",
         "المملكة العربية السعودية، المكتبة السلفية الخيرية، دورة الشيخ / عبد الله بن محمد القرعاوي رحمه الله العلمية. التاريخ ٣ / ١ / ١٤٢١هـ",
-        "( يحيى بن أحمد بن سلمان الجابري )",
+        "( يحيى بن أحمد بن سلمان الجابري ) رقم الهوية (٢٠٦١٣)، مصدرها: أبي عريش، تاريخها: ١٣٩٤/٥/٧هـ",
         "إن المدون اسمه أعلاه من خيار طلبة العلم الذين يرغبون المشاركة في الدعوة إلى الله وحيث إن له ملازمة في دروسنا ونعرف عن مدى استعداده وكفاءته في الوعظ والإرشاد وتعليم عوام الناس والخطابة كتبنا له هذه التزكية إعلاما بالواقع وتعاونا مع الجهات المختصة بالإشراف على عمل الدعاة إلى الله وفق الله الجميع لما فيه رضاه.",
         "أحمد بن يحيى النجمي — زيد بن محمد بن هادي المدخلي",
+        "أحمد بن يحيى النجمي: ت/٠٧٣٣٢١٠٤٩، جوال/٠٥٥٧٦٩٧٥٩. زيد بن محمد المدخلي: ت و فاكس/٠٧٣٣٢١٢٧٧، جوال/٠٥٥٧٧٠٥٥١. المملكة العربية السعودية — جازان — صامطة — ص.ب ٢١٥",
       ] },
     { id: "tazkiya-1433", title: "تزكية الشيخ زيد بن محمد المدخلي رحمه الله", by: "الشيخ زيد بن محمد بن هادي المدخلي", date: "٢٤ / ٨ / ١٤٣٣هـ",
       image: "/docs/tazkiya-1433.jpg", thumb: "/docs/thumb/tazkiya-1433.jpg", w: 1710, h: 2440,
