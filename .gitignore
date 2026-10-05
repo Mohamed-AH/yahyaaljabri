@@ -47,3 +47,6 @@ tools/channel_hits.json
 telegram/
 node_modules
 mockups/out/
+# Telegram login of tools/fetch_audio.py (never commit)
+*.session
+*.session-journal
