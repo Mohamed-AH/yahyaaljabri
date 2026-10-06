@@ -56,13 +56,14 @@ h1,h2,h3{font-weight:700;line-height:1.45}
 .brand .hd{color:var(--brass);font-weight:500;font-size:14px;white-space:nowrap}
 .brand small{display:block;color:var(--on-night-2);font-size:12.5px}
 .nav{display:none;gap:2px}
-.nav a{padding:6px 12px;border-radius:99px;color:var(--on-night-2);font-weight:500;font-size:15px;white-space:nowrap;transition:background .2s,color .2s}
+.nav a{padding:6px 9px;border-radius:99px;color:var(--on-night-2);font-weight:500;font-size:14.5px;white-space:nowrap;transition:background .2s,color .2s}
 .nav a:hover{color:var(--on-night)}
 .nav a.on{background:var(--night-2);color:var(--brass)}
 .icon-btn{position:relative;display:block;padding:0;width:40px;height:40px;flex:none;border:0;border-radius:50%;background:var(--night-2);color:var(--on-night);cursor:pointer;transition:background .2s}
 .icon-btn:hover{background:var(--night-line)}
 .icon-btn .ic{position:absolute;inset:0;margin:auto}
-@media(min-width:1180px){.nav{display:flex}.burger{display:none}}
+/* ten sections: the desktop nav needs ~1360 px, and the name stays on one line (the tagline hides beside the nav) */
+@media(min-width:1360px){.nav{display:flex}.burger{display:none}.brand strong{white-space:nowrap}.brand small{display:none}}
 
 /* ───────── Dark bands (hero, page headers, lesson player) ───────── */
 .band{background:var(--night) var(--pattern);background-size:56px;color:var(--on-night)}

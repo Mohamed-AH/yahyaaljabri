@@ -26,6 +26,7 @@ export const SECTIONS = [
   { id: "hadith",   title: "الحديث",           icon: "library-big",  desc: "شروح كتب الحديث: صحيح البخاري وصحيح مسلم ورياض الصالحين ومسند الإمام أحمد وغيرها." },
   { id: "aqeedah",  title: "العقيدة",          icon: "book-open",    desc: "شروح كتب العقيدة: كتاب التوحيد وشروحه والعقيدة الطحاوية والواسطية وغيرها." },
   { id: "fiqh",     title: "الفقه",            icon: "file-text",    desc: "دروس في الفقه وأحكامه." },
+  { id: "sira",     title: "السيرة",           icon: "compass",      desc: "دروس السيرة النبوية: مختصر سيرة الرسول ﷺ وغزواته." },
   { id: "khutab",   title: "الخطب",            icon: "scroll-text",  desc: "خطب الجمعة والمناسبات." },
   { id: "lectures", title: "المحاضرات",        icon: "mic-vocal",    desc: "محاضرات وكلمات ونصائح وأجوبة على الأسئلة." },
   { id: "alah",     title: "علوم الآلة",       icon: "languages",    desc: "قراءات في كتب النحو والتجويد." },
