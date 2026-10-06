@@ -28,6 +28,7 @@ export const SECTIONS = [
   { id: "fiqh",     title: "الفقه",            icon: "file-text",    desc: "دروس في الفقه وأحكامه." },
   { id: "khutab",   title: "الخطب",            icon: "scroll-text",  desc: "خطب الجمعة والمناسبات." },
   { id: "lectures", title: "المحاضرات",        icon: "mic-vocal",    desc: "محاضرات وكلمات ونصائح وأجوبة على الأسئلة." },
+  { id: "alah",     title: "علوم الآلة",       icon: "languages",    desc: "قراءات في كتب النحو والتجويد." },
   { id: "tilawa",   title: "التلاوات",         icon: "headphones",   desc: "تلاوات من الصلوات." },
   { id: "duroos",   title: "الدروس المرئية",   icon: "video",        desc: "الدروس المرئية من قناة الشيخ على يوتيوب." },
   { id: "books",    title: "الكتب",            icon: "book-open",    desc: "مؤلفات الشيخ للقراءة والتحميل." },
