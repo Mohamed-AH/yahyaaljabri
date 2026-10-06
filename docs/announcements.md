@@ -21,6 +21,15 @@ The bot answers within the hour, when the site picks up the messages. The poster
    - *Secrets* → `TELEGRAM_BOT_TOKEN` = the token.
    - *Variables* → `BOT_ADMINS` = the Telegram user ids allowed to post, comma-separated. To get someone's id, they send the bot any message. On the next run the bot replies with their id, and you add it here.
 3. **Actions** tab → *Announcements bot* → *Run workflow* once to check it. After that it runs every hour.
+4. The timer. GitHub skips most of its own scheduled runs, so the site's Cloudflare Worker starts the bot every hour (and the
+   YouTube sync daily at 05:47 Riyadh), using cron triggers in `wrangler.jsonc` (free plan). It needs one token:
+   - GitHub → profile picture → **Settings > Developer settings > Personal access tokens > Fine-grained tokens > Generate new token**.
+     Name `yaljabri-timer`, an expiry date (put a reminder to renew it), *Only select repositories* → `yahyaaljabri`,
+     *Repository permissions* → **Actions: Read and write**. Nothing else.
+   - Cloudflare → **Workers & Pages > yahyaaljabri > Settings > Variables and Secrets > Add** → type *Secret*, name `GH_TOKEN`,
+     value = the token → *Deploy*.
+   - Check: the next hour's run in GitHub's Actions list shows *workflow_dispatch* as its event, and the Worker's *Logs*
+     show `telegram-bot.yml: 204`. A `401` means the token expired or lacks the Actions permission.
 
 ## How it works
 
