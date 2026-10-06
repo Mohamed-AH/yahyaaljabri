@@ -4,7 +4,11 @@ name: YouTube sync
 # and publish. Only lessons whose title names the Sheikh (or that were approved by hand) are published - see docs/youtube-sync.md.
 on:
   schedule:
-    - cron: "47 2 * * *"         # daily, 05:47 Riyadh time
+    # GitHub drops many scheduled runs on busy hours, so the daily sync is tried three times (a run with nothing new
+    # changes nothing): 05:47, 13:23 and 21:41 Riyadh time.
+    - cron: "47 2 * * *"
+    - cron: "23 10 * * *"
+    - cron: "41 18 * * *"
   workflow_dispatch:             # "Run workflow" button for a manual run
 
 permissions:
