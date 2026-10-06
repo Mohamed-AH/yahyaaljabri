@@ -56,7 +56,9 @@ write("404.html", render(notFoundPage()));
 write("sitemap.xml", `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${indexable.map(r => `  <url><loc>${SITE}${r}</loc></url>`).join("\n")}\n</urlset>\n`);
 write("robots.txt", `User-agent: *\nAllow: /\n\nSitemap: ${SITE}/sitemap.xml\n`);
 const flat = SECTIONS.filter(s => s.id !== "books" && isFlat(s.id) && DB.series.some(x => x.sec === s.id));
-write("_redirects", flat.map(s => `/section/${s.id}/ ${href.section(s)} 301`).join("\n") + (flat.length ? "\n" : ""));
+const moved = { misc: "lectures" };   // series merged into another (old links keep working)
+write("_redirects", [...flat.map(s => `/section/${s.id}/ ${href.section(s)} 301`),
+  ...Object.entries(moved).filter(([a, b]) => !seriesById[a] && seriesById[b]).map(([a, b]) => `${href.series(a)} ${href.series(b)} 301`)].join("\n") + "\n");
 
 console.log(`built ${routes.length + 1} pages (${indexable.length} in sitemap) in ${Date.now() - t0} ms -> dist/` + (bad ? `  [${bad} FAILED]` : ""));
 process.exit(bad ? 1 : 0);

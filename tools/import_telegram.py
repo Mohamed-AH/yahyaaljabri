@@ -15,6 +15,7 @@ ov_path = os.path.join(ROOT, 'data', 'telegram_overrides.json')
 overrides = json.load(open(ov_path, encoding='utf-8')) if os.path.exists(ov_path) else {}
 meta = {sid: (title, sec) for sid, title, sec, _ in SERIES}
 meta['misc'] = ('دروس ومحاضرات متفرقة', 'lectures')
+MERGE = {'misc': 'lectures'}     # 2026-10-06 (owner): the one-off talks and «محاضرات وكلمات» are one series
 
 out_lessons, skipped = [], collections.Counter()
 for l in lessons:
@@ -25,6 +26,7 @@ for l in lessons:
     if not publish or l['series'] not in meta:
         skipped['flagged' if l['flags'] else 'excluded'] += 1
         continue
+    l['series'] = MERGE.get(l['series'], l['series'])
     hd = l.get('hijri') or ''
     out_lessons.append({k: v for k, v in {
         'id': l['id'], 'title': l['title'], 'series': l['series'], 'kind': 'audio',
