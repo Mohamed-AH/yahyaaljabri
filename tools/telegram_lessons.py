@@ -3,7 +3,7 @@
 Reads  $TELEGRAM_EXPORTS/{jabiri,jabrih,aljabri013}/result.json (Telegram Desktop JSON exports; a missing one is skipped)
 Writes $TELEGRAM_EXPORTS/lessons.json (input of tools/import_telegram.py)
 """
-import json, os, re, collections
+import json, os, re, collections, unicodedata
 from datetime import datetime
 
 ROOT = os.environ.get('TELEGRAM_EXPORTS', 'telegram')   # folder with jabiri/result.json and jabrih/result.json
@@ -15,14 +15,19 @@ SHEIKH_CHANNELS = {'قناة فضيلة الشيخ يحيى الجابري ال�
 OTHER_SCHOLARS = ['الفوزان', 'ابن باز', 'بن باز', 'العثيمين', 'ابن عثيمين', 'الألباني', 'المدخلي',
                   'ربيع بن هادي', 'عبيد الجابري', 'البخاري حفظه', 'السحيمي', 'اللحيدان', 'آل الشيخ', 'مفتي']
 
-# (series id, title, section, pattern) — first match wins, so specific before general
+# (series id, title, section, pattern) — first match wins, so specific before general. Patterns use \\s* between words
+# because the sources often drop or add a space («فتحالمجيد», «مجا لس»). Reorganised 2026-10-06 after the team's review:
+# every book read to the Sheikh is its own series, and the أبواب of كتاب التوحيد and the صلوات go where they belong.
 SERIES = [
-    ('ibn-kathir',  'تفسير ابن كثير',                 'tafsir',  r'ابن كثير|ابن كثير'),
+    # a title that starts with «صلاة …» is a recitation, whatever else the post mentions
+    ('tilawa',      'تلاوات',                         'tilawa',  r'^\s*(?:ص|صلا|صلاة|صلاه|صلأة|صااة|يصلاة)\s*(?:ال|أل)?(?:فجر|فجري|عشاء|تهجد|قيام|تراويح|مغرب)'),
+    ('khutab',      'خطب الجمعة',                     'khutab',  r'^\s*(?:مقتطف\s*من\s*)?(?:خطبة|خطبتا|خطبتي|خطبه|خطب\b)'),   # a khutba is a khutba, whatever its subject
+    ('ibn-kathir',  'تفسير ابن كثير',                 'tafsir',  r'ابن\s*كثير|بن\s*كثير'),
     ('saadi',       'تفسير ابن سعدي',                 'tafsir',  r'سعدي'),
-    ('shawkani',    'التعليق على تفسير الشوكاني',     'tafsir',  r'الشوكاني|فتح القدير'),
+    ('shawkani',    'التعليق على تفسير الشوكاني',     'tafsir',  r'الشوكاني|فتح\s*القدير'),
     ('tafsir',      'دروس في التفسير',                'tafsir',  r'تفسير'),
     ('musnad',      'شرح مسند الإمام أحمد',           'hadith',  r'مسند'),
-    ('bukhari',     'شرح صحيح البخاري',               'hadith',  r'البخاري|بخاري'),
+    ('bukhari',     'شرح صحيح البخاري',               'hadith',  r'البخاري|بخاري|من\s*صحيح(?!\s*م)'),   # «كتاب التوحيد من صحيح [البخاري]»
     ('muslim',      'شرح صحيح مسلم',                  'hadith',  r'صحيح مسلم|ص مسلم|ش مسلم|درس مسلم|\bمسلم\b|صحيح م\b|صحيح م\s*\d'),
     ('riyad',       'شرح رياض الصالحين',              'hadith',  r'رياض'),
     ('bulugh',      'شرح بلوغ المرام',                'hadith',  r'بلوغ'),
@@ -30,30 +35,80 @@ SERIES = [
     ('umdah',       'شرح عمدة الأحكام',               'hadith',  r'عمدة'),
     ('sunan',       'شرح السنن',                      'hadith',  r'سنن'),
     ('jihad',       'شرح كتاب الجهاد',                'hadith',  r'الجهاد'),
-    ('qawl-mufid',  'التعليق على القول المفيد',       'aqeedah', r'القول المفيد'),
-    ('usul-sitta',  'شرح الأصول الستة',               'aqeedah', r'الاصول الستة|الأصول الستة'),
-    ('fath-majid',  'التعليق على فتح المجيد',         'aqeedah', r'فتح المجيد'),
-    ('taysir',      'التعليق على تيسير العزيز الحميد','aqeedah', r'تيسير العزيز'),
-    ('muzani',      'شرح السنة للمزني',               'aqeedah', r'المزني'),
-    ('sifat',       'الصفات الإلهية',                 'aqeedah', r'الصفات الالهية|الصفات الإلهية'),
-    ('ramadan',     'مجالس شهر رمضان',                'lectures', r'مجالس شهر رمضان'),
+    # the شروح of كتاب التوحيد, each on its own
+    ('qawl-mufid',  'التعليق على القول المفيد',       'aqeedah', r'القول\s*المفيد'),
+    ('qawl-sadid',  'التعليق على القول السديد',       'aqeedah', r'القول\s*السديد'),
+    ('fath-majid',  'التعليق على فتح المجيد',         'aqeedah', r'فتح\s*المجيد'),
+    ('taysir',      'التعليق على تيسير العزيز الحميد','aqeedah', r'تيسير\s*العزيز'),
+    ('ianat',       'التعليق على إعانة المستفيد',     'aqeedah', r'[إا]عانة\s*المستفيد'),
+    ('fath-tasdid', 'التعليق على الفتح والتسديد',     'aqeedah', r'الفتح\s*والتسديد'),
+    ('mujaz',       'التعليق على الشرح الموجز الممهد','aqeedah', r'الشرح\s*الموجز|الموجز\s*الممهد'),
+    # fiqh books
     ('mulakhkhas',  'التعليق على الملخص الفقهي',      'fiqh',    r'الملخص'),
-    ('masail',      'شرح مسائل الجاهلية',             'aqeedah', r'مسائل الجاهلية'),
-    ('nar',         'أسباب دخول النار',               'lectures', r'دخول النار|دخو ل النار'),
-    ('tawhid',      'شرح كتاب التوحيد',               'aqeedah', r'كتاب التوحيد|ك التوحيد|التوحيد|باب ما جاء في|باب الخوف من الشرك|باب من حقق|باب قول الله'),
-    ('tahawiyya',   'شرح العقيدة الطحاوية',           'aqeedah', r'الطحاوي'),
-    ('wasitiyya',   'شرح العقيدة الواسطية',           'aqeedah', r'الواسطي'),
-    ('usul',        'شرح الأصول الثلاثة',             'aqeedah', r'الاصول الثلاث|الأصول الثلاث|الاصل|الأصل'),
+    ('manar',       'التعليق على منار السبيل',        'fiqh',    r'منار\s*السبيل'),
+    ('hajj',        'دروس الحج والعمرة',              'fiqh',    r'دليل\s*الحاج|مناسك\s*الحج|[اأ]حكام\s*الحج|الحج\s*والعمرة|صفة\s*الحج\s*والعمرة|التحقيق\s*وال[إا]يضاح'),
+    ('shurut-salah','شروط الصلاة وأركانها وواجباتها', 'fiqh',    r'شروط\s*الصلاة'),
+    ('adab-mashi',  'آداب المشي إلى الصلاة',          'fiqh',    r'[آأا]داب\s*المشي'),
+    # books and متون of عقيدة, each on its own (the team: «وكل كتاب مستقل»)
+    ('usul',        'شرح الأصول الثلاثة',             'aqeedah', r'الاصول\s*الثلاث|الأصول\s*الثلاث|الاصل\s|الأصل\s|الاصل$|الأصل$'),
+    ('usul-sitta',  'شرح الأصول الستة',               'aqeedah', r'الاصول\s*الستة|الأصول\s*الستة'),
     ('qawaid',      'شرح القواعد الأربع',             'aqeedah', r'القواعد'),
     ('nawaqid',     'شرح نواقض الإسلام',              'aqeedah', r'نواقض'),
-    ('kashf',       'شرح كشف الشبهات',                'aqeedah', r'كشف الشبهات'),
+    ('kashf',       'شرح كشف الشبهات',                'aqeedah', r'كشف\s*الشبهات'),
     ('lumah',       'شرح لمعة الاعتقاد',              'aqeedah', r'لمعة'),
-    ('qayrawaniyya','التعليق على العقيدة القيروانية', 'aqeedah', r'القيرواني|الاستعانة برب'),
-    ('sira',        'السيرة النبوية',                 'lectures', r'السيرة|سيرة'),
-    ('siyam',       'أحكام الصيام',                   'lectures', r'الصيام'),
+    ('masail',      'شرح مسائل الجاهلية',             'aqeedah', r'مسائل\s*الجاهلية'),
+    ('tadmuriyya',  'شرح الرسالة التدمرية',           'aqeedah', r'التدمرية'),
+    ('durar',       'الدرر السنية من الفتاوى النجدية','aqeedah', r'الدرر\s*السنية|الدرر\s*المجلس|الدرر\s*رقم'),
+    ('qayrawaniyya','التعليق على العقيدة القيروانية', 'aqeedah', r'القيرواني|الاستعانة\s*برب'),
+    ('muzani',      'شرح السنة للمزني',               'aqeedah', r'مزني'),
+    ('fadl-islam',  'قراءة كتاب فضل الإسلام',         'aqeedah', r'(?:كتا\s*ب|كتاب|قراءة|شرح)\s*فضل\s*ال[إا]سلام'),
+    ('ghunya',      'غنية السائل في لامية شيخ الإسلام','aqeedah', r'غنية\s*السائل|لامية\s*شيخ'),
+    ('subul',       'منظومة السبل السوية',            'aqeedah', r'السبل\s*السوية'),
+    ('talbis',      'الرد على تلبيس الصوفية',         'aqeedah', r'تلبيس\s*الصوفية'),
+    ('wabil',       'شرح الوابل الصيب',               'aqeedah', r'الوابل\s*الصيب'),
+    ('tabarruk',    'قراءة كتاب التبرك أحكام وشبهات', 'aqeedah', r'التبرك\s*[أا]حكام'),
+    ('furqan',      'قراءة كتاب الفرقان',             'aqeedah', r'كتاب\s*الفرقان'),
+    ('iman-salam',  'كتاب الإيمان لأبي عبيد',         'aqeedah', r'الإيمان\s*لأبي\s*عبيد|القاسم\s*بن\s*سلام'),
+    ('bishr',       'عقيدة بشر الحافي',               'aqeedah', r'بشر\s*الحافي'),
+    ('haiyya',      'القصيدة الحائية لابن أبي داود',  'aqeedah', r'القصيدة\s*الحائي'),
+    ('shafii',      'إثبات الصفات للشافعي',           'aqeedah', r'الصفات\s*للشافعي|اعتقاد\s*الشافعي'),
+    ('qasida-sunna','قصيدة في السنة',                 'aqeedah', r'قصيدة\s*في\s*السنة'),
+    ('mujmal',      'مجمل اعتقاد أهل السنة',          'aqeedah', r'مجمل\s*اعتقاد'),
+    ('majishun',    'إثبات الصفات والرؤية والرد على الجهمية', 'aqeedah', r'الماجشون|[إا]ثبات\s*الصفا?[تة]\s*والرؤية'),
+    ('ittiba',      'اتباع الصحابة',                  'aqeedah', r'اتباع\s*الصحابة'),
+    ('qadar',       'إثبات القدر',                    'aqeedah', r'[إا]ثبات\s*القدر'),
+    ('tawhid-ibada','رسالة في توحيد العبادة',         'aqeedah', r'توحيد\s*العبادة'),
+    ('tathir',      'تطهير الاعتقاد',                 'aqeedah', r'تطهير\s*الاعتقاد'),
+    ('tathir-jinan','تطهير الجنان والأركان',          'aqeedah', r'تطهير\s*الجنان'),
+    ('humaydi',     'أصول السنة للحميدي',             'aqeedah', r'[أا]صول\s*السن[ةه]\s*(?:ال|لل)?حميدي'),
+    ('asad',        'عقيدة أسد بن موسى',              'aqeedah', r'[أا]سد\s*بن\s*موسى|[أا]سد\s*السنة'),
+    ('malik',       'عقيدة الإمام مالك',              'aqeedah', r'عقيدة\s*ال[إا]مام\s*مالك'),
+    ('rasail',      'قراءات في رسائل الاعتقاد',       'aqeedah', r'الاقتصاد\s*في\s*الاعتقاد|وصية\s*الذهبي|الإجابة\s*الجلية|منزلة\s*السنة|لزوم\s*السنة|'
+                                                                 r'سفيان\s*بن\s*سعيد|سعيد\s*بن\s*جبير|يوسف\s*بن\s*[أا]سباط|زاد\s*الداعية|عقيدة\s*الرائيين'),
+    ('sifat',       'الصفات الإلهية',                 'aqeedah', r'الصفات\s*ال\S*لهية|الصفاتةالالهية|[إا]ثبات\s*العينين'),
+    ('daa-dawa',    'قراءة الداء والدواء لابن القيم', 'aqeedah', r'الداء\s*والدواء'),
+    ('tahawiyya',   'شرح العقيدة الطحاوية',           'aqeedah', r'الطحاوي'),
+    ('wasitiyya',   'شرح العقيدة الواسطية',           'aqeedah', r'الواسطي'),
+    # مجالس رمضان and the سيرة stay whole and separate
+    ('ramadan',     'مجالس شهر رمضان',                'lectures', r'مجالس\s*شهر\s*رمضان|مجلس\s*رمضان|مجا\s*لس\s*شهر|المجلس\s*\S+\s*(?:عشر|والعشرون|والعشرين|وعشرون)|'
+                                                                   r'^المجلس\s*(?:الثلاثون|الأخير|الاخير)'),
+    ('sira',        'السيرة النبوية',                 'lectures', r'السيرة|سيرة|غزوة|غروة|قصة\s*موت\s*رسول|وفود\s*العرب|حجة\s*الوداع|مسير\s*خالد|ردة\s*بني'),
+    ('nar',         'أسباب دخول النار',               'lectures', r'دخول\s*النار|دخو\s*ل\s*النار'),
+    # كتاب التوحيد: the book, its أبواب (the team listed these) and the دروس of the Mecca/Jeddah mosques
+    ('tawhid',      'شرح كتاب التوحيد',               'aqeedah', r'كتاب\s*التوحيد|ك\s*التوحيد|التوحيد|'
+                                                                 r'باب\s*ما\s*جاء\s*ف?ي?\s*|باب\s*الخوف\s*من\s*الشرك|باب\s*من\s*حقق|باب\s*قول\s*الله|'
+                                                                 r'باب\s*ما\s*?جاء|من\s*جحد|الدعاء\s*[إأا]ل[يى]\s*شهادة|بيان\s*شي.?\s*من\s*[أا]نواع\s*السحر|'
+                                                                 r'باب\s*لا\s*يذبح|منكري\s*القدر|باب\s*من\s*هزل|باب\s*من\s*[اأ]طاع|باب\s*الشفاعة|باب\s*من\s*الشرك|'
+                                                                 r'باب\s*من\s*ال[إا]يمان\s*بالله|باب\s*التبشير|باب\s*ال?دعاء|باب\s*بيان|باب\s*من\s*تبرك|'
+                                                                 r'باب\s*لا\s*يقال\s*السلام'),
+    ('siyam',       'أحكام الصيام',                   'fiqh',    r'الصيام|الصوم\b'),
     ('khutab',      'خطب الجمعة',                     'khutab',  r'خطبة|خطبتا|خطبتي|خطبه|الخطبة'),
-    ('tilawa',      'تلاوات',                         'tilawa',  r'تلاوة|تلاوه|برواية|صلاة القيام|صلأة ألقيام|التراويح|^صلاة العشاء|^صلاة الفجر|^صلاة المغرب'),
-    ('lectures',    'محاضرات وكلمات',                 'lectures', r'محاضرة|محاضره|كلمة|كلمه|نصيحة|نصيحه|تعزية|تعز ية|تعزيه'),
+    ('tilawa',      'تلاوات',                         'tilawa',  r'تلاوة|تلاوه|برواية|صلاة\s*القيام|صلأة\s*ألقيام|التراويح'),
+    ('ajurrumiyya', 'قراءة الممتع في شرح الآجرومية',  'lectures', r'الآجروم|الاجروم|الآجرم'),
+    ('tuhfa',       'قراءة تحفة الأطفال',             'tilawa',  r'تحفة\s*الاطفال|تحفة\s*الأطفال'),
+    ('lectures',    'محاضرات وكلمات',                 'lectures', r'محاضرة|محاضره|كلمة|كلمه|نصيحة|نصيحه|تعزية|تعز\s*ية|تعزيه'),
+    # a درس named only by its mosque is a كتاب التوحيد lesson (the team, 2026-10-06: «دروس مكة ... أكثرها في كتاب التوحيد»)
+    ('tawhid',      'شرح كتاب التوحيد',               'aqeedah', r'درس\s*(?:جامع|ج\b)|دروس\s*مكة|جامع\s*(?:شهيد\s*المحراب|زمزم|الرحمن|الرحمان|الراجحي|البديوي|الشريف)'),
     ('fatawa',      'أسئلة وأجوبة',                   'lectures', r'سؤال|اسئلة|أسئلة|فتوى|فتاوى|جواب'),
 ]
 SERIES_RE = [(sid, t, sec, re.compile(p)) for sid, t, sec, p in SERIES]
@@ -67,6 +122,7 @@ ORDINALS = {'الأول': 1, 'الاول': 1, 'الثاني': 2, 'الثالث':
             'الثامن': 8, 'التاسع': 9, 'العاشر': 10, 'الحادي عشر': 11, 'الثاني عشر': 12, 'الثالث عشر': 13,
             'الرابع عشر': 14, 'الخامس عشر': 15, 'السادس عشر': 16, 'السابع عشر': 17, 'الثامن عشر': 18,
             'التاسع عشر': 19, 'العشرون': 20}
+CUT_NAME = re.compile(r'-?AudioConverter')      # these file names were cut to ~15 characters before the suffix
 JUNK_NAME = re.compile(r'^(AUD|PTT|audio|VID|WA|Recording|rec|voice|record|\d+$|[\d_\- ]+$)', re.I)
 EMOJI = re.compile('[\U0001F000-\U0001FFFF☀-➿⬀-⯿■-◿️‍‏‎⁦-⁩]')
 
@@ -77,7 +133,8 @@ def text_of(x):
 
 
 def clean(s):
-    s = EMOJI.sub(' ', s or '').replace('_', ' ').replace('ـ', '').replace('ﻯ', 'ى').replace('ﻱ', 'ي')
+    s = unicodedata.normalize('NFC', s or '')     # some posts write ئ as ي + a combining hamza, which no pattern would match
+    s = EMOJI.sub(' ', s).replace('_', ' ').replace('ـ', '').replace('ﻯ', 'ى').replace('ﻱ', 'ي')
     s = re.sub(r'[ً-ْ]', '', s)               # diacritics
     return re.sub(r'\s+', ' ', s).strip()
 
@@ -93,9 +150,10 @@ def name_title(fn):
 
 
 def caption_title(t):
+    """First line of a caption that actually names the lesson (channel boilerplate like «جديد الدروس» is skipped)."""
     for line in (t or '').split('\n'):
         c = clean(line).strip(' -:.*#')
-        if len(c) >= 6 and not re.match(r'^(فضيلة|لفضيلة|مع فضيلة|الشيخ|جامع|مسجد|http)', c):
+        if len(c) >= 6 and not re.match(r'^(فضيلة|لفضيلة|مع فضيلة|الشيخ|جامع|مسجد|http|يحي|قناة|رابط|اشترك|انشر|حفظه الله|وفقه الله)', c) and not JUNK_CAPTION.match(c):
             return c[:160]
     return ''
 
@@ -126,7 +184,7 @@ def lesson_no(s):
     return None
 
 
-JUNK_CAPTION = re.compile(r'^(مقطع صوتي|صوت|تسجيل صوتي|جديد الدروس|جديد التسجيلات|جديد)\b')
+JUNK_CAPTION = re.compile(r'^(مقطع صوتي|صوت|تسجيل صوتي|جديد|الجديد|تسجيل جديد|مجموعة\s*\d+|للإستماع|للاستماع)\b')
 VOICE_BPS = 18300 / 8          # bytes/s of the channels' voice notes (5.66 MB voice = 41:20 m4a, posts 5968/5969)
 WINDOW = 1800                  # an announcement must precede its audio by at most 30 min
 QA_WINDOW = 86400              # ... but a question is answered by the next audio, sometimes hours later
@@ -348,20 +406,22 @@ def main():
         main_post = g[0]
         dur, exact = length(main_post)
         size = main_post.get('file_size')
-        caps = [x['_t'] for x in g if x['_t'].strip() and not JUNK_CAPTION.match(clean(x['_t']))]
+        caps = [x['_t'] for x in g if x['_t'].strip()]     # caption_title() skips the channel's boilerplate lines
         names = [x.get('file_name') for x in g if x.get('file_name')]
         anns = [x['_ann'] for x in g if x['_ann']]
         good_ann = next((a for a in anns if a[3]), None)
-        title, source = '', ''
+        title, source, cut = '', '', False      # cut: the title is a file name the uploader shortened, so trust the post
         for c in caps:
             title = desc_title(c) if re.search(r'الس\W*\(?\s*\d{1,3}\s*\)?\W*ؤال|مجموعة أسئلة', clean(c)) else caption_title(c)
             if title:
                 source = 'caption'; break
         if not title:
             for n in names:
-                title = name_title(n)
-                if title:
-                    source = 'file name'; break
+                t2 = name_title(n)
+                if t2 and CUT_NAME.search(n) and len(t2) <= 18 and good_ann:
+                    continue          # «التعليق على الف-AudioConverter.amr»: the uploader cut the name, the post says more
+                if t2:
+                    title, source, cut = t2, 'file name', bool(CUT_NAME.search(n)); break
         if not title and good_ann:
             title = desc_title(good_ann[1])
             hd0 = good_ann[2][1]
@@ -370,11 +430,15 @@ def main():
             source = 'description post' if title else ''
         blob = clean(' '.join(caps + [n or '' for n in names] + ([good_ann[1]] if good_ann else [])))
         tb = clean(title)
-        series = next(((sid, t, sec) for sid, t, sec, rx in SERIES_RE
-                       if rx.search(blob) or rx.search(tb) or rx.search(blob.replace(' ', ''))), ('', '', ''))
+        series = ('', '', '') if cut else next(((sid, t, sec) for sid, t, sec, rx in SERIES_RE   # the title names the book
+                       if rx.search(tb) or rx.search(tb.replace(' ', ''))), ('', '', ''))
+        if not series[0]:                                                                   # ... else the post around it
+            series = next(((sid, t, sec) for sid, t, sec, rx in SERIES_RE
+                           if rx.search(blob) or rx.search(blob.replace(' ', ''))), ('', '', ''))
         if not series[0] and title:
             series = ('misc', 'دروس ومحاضرات متفرقة', 'lectures')     # titled one-offs: publish, no review
-        if re.match(r'السؤال |مجموعة أسئلة ', title) or (main_post['_ch'] == QA_CHANNEL and series[0] in ('misc', '') and title):
+        qa = bool(re.search(r'الس\W*\(?\s*\d{1,3}\s*\)?\W*ؤال|مجموعة أسئلة', clean(' '.join(caps))))
+        if re.match(r'السؤال |مجموعة أسئلة ', title) or (main_post['_ch'] == QA_CHANNEL and title and (qa or series[0] in ('misc', ''))):
             series = next((sid, t, sec) for sid, t, sec, rx in SERIES_RE if sid == 'fatawa')
         fwd = sorted({x.get('forwarded_from') for x in g if x.get('forwarded_from')} - SHEIKH_CHANNELS)
         sheikh = bool(re.search(r'يحيى|يحي|الجابري', blob))
