@@ -196,11 +196,12 @@ export const DOCS = {
 };
 
 /* Announcement posters (site/data/announcements.json, written by tools/announce_bot.mjs). Only well-formed entries whose
-   end date has not passed (Riyadh date) are kept; the image must be one of ours under /ann/. */
+   end date has not passed (Riyadh date) are kept, the pinned schedule first; the image must be one of ours under /ann/. */
 export const todayRiyadh = (now = new Date()) => new Date(now.getTime() + 3 * 3600e3).toISOString().slice(0, 10);
 export function setAnnouncements(list, day = todayRiyadh()) {
   state.ann = (Array.isArray(list) ? list : []).filter(a => a && typeof a.title === "string" && /^\/ann\/[0-9a-f]{16}\.(jpg|png|webp)$/.test(a.image)
     && (!a.until || (/^\d{4}-\d\d-\d\d$/.test(a.until) && a.until >= day)))
+    .sort((a, b) => (b.pin === true) - (a.pin === true))   // the lesson schedule first
     .map(a => ({ id: String(a.id || "").replace(/[^0-9a-f]/g, "").slice(0, 16), title: a.title.slice(0, 160), image: a.image, until: a.until || "",
       thumb: a.image.replace(/^\/ann\/(\w+)\.\w+$/, "/ann/thumb/$1.webp"), w: Number.isInteger(a.w) && a.w > 0 ? a.w : 1131, h: Number.isInteger(a.h) && a.h > 0 ? a.h : 1600 }));
   return state.ann;

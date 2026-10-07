@@ -9,6 +9,7 @@ The team adds them through a Telegram bot. Nobody needs GitHub access.
 - **Add:** send the poster to the bot as a photo (or as a file, for full quality). Optional caption:
   - first line: the title, e.g. `شرح كتاب التوحيد — أول جمعة من كل شهر، مكة المكرمة`
   - end date: `حتى ١٤٤٨/٧/٢` (Hijri), or a Gregorian date such as `حتى 2027-01-10`. Without one, the poster stays until it is removed.
+- **Lesson schedule:** start the caption's first line with «جدول», e.g. `جدول الدروس العلمية بمحافظة جدة ١٤٤٨هـ`. It always shows first, before the other posters, and stays until replaced: sending a new schedule takes the old one down by itself.
 - **Remove:** reply «حذف» to the poster you sent.
 - **See what is up:** `/list`.
 

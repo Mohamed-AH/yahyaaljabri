@@ -53,5 +53,31 @@ await run();
 t("«حذف» on the poster removes it", list().length === 0 && sent.some(s => s.text.startsWith("حُذف")));
 t("its image is deleted", !fs.readdirSync(path.join(dir, "site", "ann")).some(f => f.endsWith(".jpg")));
 t("the previews folder is left alone", fs.existsSync(path.join(dir, "site", "ann", "thumb")));
+// the lesson schedule: always first, and a new one replaces the old one
+const PNG = n => { const b = Buffer.alloc(33); b.write("\x89PNG", 0, "latin1"); b.writeUInt32BE(20 + n, 16); b.writeUInt32BE(30, 20); return b; };
+let img = JPEG;
+server.removeAllListeners("request");
+server.on("request", (req, res) => {
+  let body = ""; req.on("data", c => body += c); req.on("end", () => {
+    const p = body ? JSON.parse(body) : {}, m = req.url.split("/").pop(), ok = r => res.end(JSON.stringify({ ok: true, result: r }));
+    if (req.url.startsWith("/file/")) return res.end(img = PNG(+req.url.split("/").pop().replace(/\D/g, "")));
+    if (m === "getUpdates") return ok(p.offset ? [] : updates);
+    if (m === "getFile") return ok({ file_id: p.file_id, file_size: 33, file_path: "photos/" + p.file_id + ".png" });
+    if (m === "sendMessage") { sent.push(p); return ok({}); }
+  });
+});
+updates = [
+  msg(6, ADMIN, { photo: [{ file_id: "p1" }], caption: "جدول الدروس ١٤٤٧" }),
+  msg(7, ADMIN, { photo: [{ file_id: "p2" }], caption: "درس الجمعة" }),
+];
+await run();
+L = list();
+t("schedule pinned and first", L.length === 2 && L[0].pin === true && L[0].title === "جدول الدروس ١٤٤٧" && !L[1].pin, JSON.stringify(L));
+sent = []; updates = [msg(8, ADMIN, { photo: [{ file_id: "p3" }], caption: "#جدول\nالجدول الجديد ١٤٤٨" })];
+await run();
+L = list();
+t("new schedule replaces the old one", L.length === 2 && L[0].title === "الجدول الجديد ١٤٤٨" && L[0].pin && L[1].title === "درس الجمعة", JSON.stringify(L));
+t("admin told the old schedule went", sent.some(s => s.text.includes("حُذف الجدول السابق")));
+t("old schedule image deleted", fs.readdirSync(path.join(dir, "site", "ann")).filter(f => f.endsWith(".png")).length === 2);
 server.close(); fs.rmSync(dir, { recursive: true, force: true });
 console.log(`${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);

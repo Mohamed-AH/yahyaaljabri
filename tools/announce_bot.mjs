@@ -4,6 +4,7 @@
    The team sends the bot a poster (photo, or an image sent as a file). The caption is optional:
        first line            -> the card's title (else "إعلان")
        "حتى 1448/7/2"        -> it comes down after that day (Hijri, Umm al-Qura; a Gregorian 2027-01-10 works too)
+       title starting «جدول» (or "#جدول" anywhere) -> the lesson schedule: always shown first, and a new one replaces the old one
    To take a card down: reply «حذف» to the poster you sent. «/list» lists the cards on the site.
    Only Telegram users listed in BOT_ADMINS (comma-separated numeric ids) can change anything; anyone else is told their id,
    so the owner can add them.
@@ -55,8 +56,10 @@ export function parseCaption(caption = "") {
     if (a > 1300 && a < 1600 && b >= 1 && b <= 12 && c >= 1 && c <= 30) until = hijriToIso(a, b, c);
     else if (a > 1999 && b >= 1 && b <= 12 && c >= 1 && c <= 31) until = `${a}-${String(b).padStart(2, "0")}-${String(c).padStart(2, "0")}`;
   }
-  const t = caption.split("\n").map(s => s.trim()).find(s => s && !/^(?:حتى|إلى|الى|ينتهي|ينتهى|until)/i.test(s));
-  return { title: (t || "إعلان").slice(0, 140), until };
+  const tag = /#جدول/.test(caption);
+  const t = caption.replace(/#جدول\S*/g, "").split("\n").map(s => s.trim()).find(s => s && !/^(?:حتى|إلى|الى|ينتهي|ينتهى|until)/i.test(s));
+  const title = (t || (tag ? "جدول الدروس" : "إعلان")).slice(0, 140);
+  return { title, until, pin: tag || /^جدول/.test(title) };
 }
 
 async function api(method, params = {}) {
@@ -81,6 +84,12 @@ function size(b) {   // -> [w, h] for JPEG/PNG (for the page's width/height attr
   return [1131, 1600];
 }
 
+/* the schedule (pin) first, then the newest posters; a new schedule replaces the old one */
+export function place(list, card) {
+  const rest = card.pin ? list.filter(a => !a.pin) : list;
+  return [card, ...rest].sort((a, b) => (b.pin ? 1 : 0) - (a.pin ? 1 : 0));
+}
+
 export function prune(list, day = today()) {
   const keep = list.filter(a => !a.until || a.until >= day);
   return { keep, gone: list.filter(a => !keep.includes(a)) };
@@ -97,8 +106,8 @@ async function main() {
       const who = String(m.from.id);
       if (!ADMINS.has(who)) { await say(m.chat.id, `غير مصرّح لك بنشر الإعلانات. رقمك في تيليجرام: ${who} (أرسله لمسؤول الموقع).`); continue; }
       const text = (m.text || "").trim();
-      if (/^\/(start|help)/.test(text)) { await say(m.chat.id, "أرسل صورة الإعلان، واكتب في التعليق عنوانه في السطر الأول، وتاريخ انتهائه مثل: حتى ١٤٤٨/٧/٢\nلحذف إعلان: ردّ على صورته بكلمة «حذف».\nلعرض الإعلانات الحالية: /list"); continue; }
-      if (/^\/list/.test(text)) { await say(m.chat.id, list.length ? list.map((a, i) => `${i + 1}. ${a.title}${a.until ? " (حتى " + a.until + ")" : ""}`).join("\n") : "لا توجد إعلانات الآن."); continue; }
+      if (/^\/(start|help)/.test(text)) { await say(m.chat.id, "أرسل صورة الإعلان، واكتب في التعليق عنوانه في السطر الأول، وتاريخ انتهائه مثل: حتى ١٤٤٨/٧/٢\nجدول الدروس: اجعل أول سطر في التعليق يبدأ بكلمة «جدول»، فيظهر أولًا دائمًا ويحلّ محل الجدول السابق.\nلحذف إعلان: ردّ على صورته بكلمة «حذف».\nلعرض الإعلانات الحالية: /list"); continue; }
+      if (/^\/list/.test(text)) { await say(m.chat.id, list.length ? list.map((a, i) => `${i + 1}. ${a.pin ? "(الجدول) " : ""}${a.title}${a.until ? " (حتى " + a.until + ")" : ""}`).join("\n") : "لا توجد إعلانات الآن."); continue; }
       if (/^حذف/.test(text) && m.reply_to_message) {
         const hit = list.find(a => a.tg && a.tg.chat === m.chat.id && a.tg.msg === m.reply_to_message.message_id);
         if (hit) { list = list.filter(a => a !== hit); changed = true; await say(m.chat.id, `حُذف «${hit.title}» وسيختفي من الموقع خلال ساعة.`, m.message_id); }
@@ -111,14 +120,15 @@ async function main() {
         const buf = await download(photo.file_id), type = sniff(buf);
         if (!EXT[type]) throw new Error("الملف ليس صورة JPEG أو PNG أو WebP");
         const sha = crypto.createHash("sha256").update(buf).digest("hex"), file = `${sha.slice(0, 16)}.${EXT[type]}`;
-        const { title, until } = parseCaption(m.caption || "");
+        const { title, until, pin } = parseCaption(m.caption || "");
         if (until && until < today()) { await say(m.chat.id, "تاريخ الانتهاء في الماضي، لم يُنشر الإعلان.", m.message_id); continue; }
         if (list.some(a => a.image === "/ann/" + file)) { await say(m.chat.id, "هذا الإعلان منشور من قبل.", m.message_id); continue; }
         const [w, h] = size(buf);
         if (!DRY) { fs.mkdirSync(DIR, { recursive: true }); fs.writeFileSync(path.join(DIR, file), buf); }
-        list.unshift({ id: sha.slice(0, 12), title, image: "/ann/" + file, w, h, until, added: today(), tg: { chat: m.chat.id, msg: m.message_id } });
+        const old = pin ? list.filter(a => a.pin) : [];
+        list = place(list, { id: sha.slice(0, 12), title, image: "/ann/" + file, w, h, until, added: today(), tg: { chat: m.chat.id, msg: m.message_id }, ...(pin ? { pin: true } : {}) });
         changed = true;
-        await say(m.chat.id, `تم: «${title}» سيظهر في الموقع خلال ساعة${until ? "، ويختفي بعد " + until : ""}.`, m.message_id);
+        await say(m.chat.id, `تم: «${title}» سيظهر في الموقع خلال ساعة${pin ? " أولَ الإعلانات" : ""}${until ? "، ويختفي بعد " + until : ""}.${old.length ? " وحُذف الجدول السابق: «" + old.map(a => a.title).join("»، «") + "»." : ""}`, m.message_id);
       } catch (e) { await say(m.chat.id, "تعذّر حفظ الإعلان: " + e.message, m.message_id); }
     }
   } else console.error("TELEGRAM_BOT_TOKEN not set: only removing expired cards");
