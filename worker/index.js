@@ -1,4 +1,4 @@
-/* Serves the static site (dist/, via the ASSETS binding) and one dynamic route:
+/* Serves the static site (dist/, via the ASSETS binding) and two dynamic routes (/health is below):
    /dl/<16 hex>?n=<title>  ->  R2 object audio/<hex>.m4a with Content-Disposition: attachment, so the lesson page's
    «تحميل» button saves the file under the lesson's title instead of opening it in a new tab (cross-origin `download` is ignored). */
 const KEY = /^\/dl\/([0-9a-f]{16})$/;
@@ -22,6 +22,25 @@ export async function dispatch(workflow, env, fetcher = fetch) {
   return r.status;
 }
 
+/* /health for an uptime monitor: 200 when the home page, the lesson data and the audio (R2 bucket, and one file through the public
+   media domain) all answer, else 503. The body says which part failed; nothing secret in it. */
+export const MEDIA_HOST = "https://media.yaljabri.com";
+export async function health(env, fetcher = fetch) {
+  const t = () => AbortSignal.timeout(8000);
+  const check = async f => { try { return await f() ? "ok" : "fail"; } catch (e) { return "fail"; } };
+  const r = {
+    site: await check(async () => (await env.ASSETS.fetch(new Request("https://yaljabri.com/"))).ok),
+    data: await check(async () => (await env.ASSETS.fetch(new Request("https://yaljabri.com/data/library.json"))).ok),
+  };
+  let key = "";
+  r.audio_bucket = await check(async () => (key = (await env.MEDIA.list({ prefix: "audio/", limit: 1 })).objects[0]?.key || ""));
+  r.audio_public = key ? await check(async () => (await fetcher(`${MEDIA_HOST}/${key}`, { method: "HEAD", signal: t() })).ok) : "fail";
+  r.timer = env.GH_TOKEN ? "ok" : "no GH_TOKEN";   // informational: the bot and YouTube sync still have GitHub's own schedules
+  const ok = ["site", "data", "audio_bucket", "audio_public"].every(k => r[k] === "ok");
+  return new Response(JSON.stringify({ ok, ...r, time: new Date().toISOString() }), { status: ok ? 200 : 503,
+    headers: { "content-type": "application/json", "cache-control": "no-store", "x-content-type-options": "nosniff" } });
+}
+
 export default {
   async scheduled(event, env) {
     const wf = JOBS[event.cron];
@@ -30,6 +49,7 @@ export default {
 
   async fetch(req, env) {
     const url = new URL(req.url), m = KEY.exec(url.pathname);
+    if (url.pathname === "/health") return health(env);
     if (!m) return env.ASSETS.fetch(req);
     if (req.method !== "GET" && req.method !== "HEAD") return new Response(null, { status: 405, headers: { allow: "GET, HEAD" } });
     const obj = await env.MEDIA.get(`audio/${m[1]}.m4a`);

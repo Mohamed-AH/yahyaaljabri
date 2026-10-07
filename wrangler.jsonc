@@ -4,7 +4,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "yahyaaljabri",
   "compatibility_date": "2026-10-01",
-  // worker/index.js only handles /dl/* (audio downloads from R2 under the lesson's title); everything else is dist/ as before.
+  // worker/index.js only handles /dl/* (audio downloads from R2 under the lesson's title) and /health (uptime monitor); everything else is dist/.
   "main": "worker/index.js",
   "build": {
     "command": "node scripts/build.mjs"
@@ -14,7 +14,7 @@
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page",
     "binding": "ASSETS",
-    "run_worker_first": ["/dl/*"]
+    "run_worker_first": ["/dl/*", "/health"]
   },
   "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "yahyaaljabri-media" }],
   // Timer: starts the Announcements bot (hourly) and the YouTube sync (05:47 Riyadh) on GitHub, which drops its own schedules.

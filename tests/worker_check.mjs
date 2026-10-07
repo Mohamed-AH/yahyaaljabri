@@ -1,5 +1,5 @@
 /* worker/index.js (the /dl/ download route) against fake ASSETS + R2 bindings.   Usage: node tests/worker_check.mjs */
-import w, { fileName, disposition, dispatch, JOBS } from "../worker/index.js";
+import w, { fileName, disposition, dispatch, JOBS, health } from "../worker/index.js";
 const env = { ASSETS: { fetch: r => new Response("asset " + new URL(r.url).pathname) },
   MEDIA: { get: async k => k === "audio/2137b5d426dbcd69.m4a" ? { body: "AUDIO", size: 5 } : null } };
 let bad = 0; const t = (n, c) => { if (!c) bad++; console.log(c ? "ok  " : "FAIL", n); };
@@ -20,6 +20,19 @@ t("dispatch bot on main", calls[0][0].endsWith("/actions/workflows/telegram-bot.
   && calls[0][1].headers.authorization === "Bearer t" && calls[0][1].headers["user-agent"]);
 let threw = false; try { await dispatch("y.yml", { GH_TOKEN: "t" }, async () => new Response("bad", { status: 401 })); } catch { threw = true; }
 t("error on 401", threw);
+const henv = ok => ({ ASSETS: { fetch: async () => new Response("x", { status: ok ? 200 : 500 }) },
+  MEDIA: { list: async () => ({ objects: [{ key: "audio/2137b5d426dbcd69.m4a" }] }) } });
+let hits = [];
+r = await health(henv(true), async (u, o) => (hits.push([u, o.method]), new Response(null, { status: 200 })));
+let hj = await r.json();
+t("health 200 when all answer", r.status === 200 && hj.ok && hj.audio_public === "ok" && hj.timer === "no GH_TOKEN"
+  && hits[0][0] === "https://media.yaljabri.com/audio/2137b5d426dbcd69.m4a" && hits[0][1] === "HEAD" && r.headers.get("cache-control") === "no-store");
+r = await health(henv(true), async () => new Response(null, { status: 404 })); hj = await r.json();
+t("health 503 when public audio fails", r.status === 503 && hj.audio_public === "fail" && hj.site === "ok");
+r = await health({ ...henv(false), MEDIA: { list: async () => { throw new Error("x"); } } }, async () => new Response(null)); hj = await r.json();
+t("health 503 when site/bucket fail", r.status === 503 && hj.site === "fail" && hj.audio_bucket === "fail" && hj.audio_public === "fail");
+r = await w.fetch(new Request("https://x/health"), henv(true)); t("/health routed", r.headers.get("content-type") === "application/json");
+t("/health runs in the Worker", (await import("node:fs")).readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8").includes('"/health"'));
 const fs = await import("node:fs"), wr = fs.readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8");
 t("crons match JOBS", Object.keys(JOBS).every(c => wr.includes(`"${c}"`))
   && Object.values(JOBS).every(f => fs.existsSync(new URL("../.github/workflows/" + f, import.meta.url))));
