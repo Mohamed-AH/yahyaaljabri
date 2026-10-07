@@ -1,5 +1,5 @@
 /* Browser app. Pages arrive pre-rendered (scripts/build.mjs); this script wires them up and handles client-side navigation. */
-import { init, setAnnouncements, state, byId, seriesById, secById, ic, safeYt, safeUrl, cleanQuery, oneOf, hashToPath, href, dur, fullTitle, NAME, PAGE, SECTIONS } from "./core.js";
+import { init, setAnnouncements, todayRiyadh, state, byId, seriesById, secById, ic, safeYt, safeUrl, cleanQuery, oneOf, hashToPath, href, dur, fullTitle, NAME, PAGE, SECTIONS } from "./core.js";
 import { resolve, searchResults, seriesInfo, seriesList, nextLesson, ogTitle, coverColor, speedLabel, SPEEDS } from "./views.js";
 
 const $ = s => document.querySelector(s);
@@ -34,6 +34,7 @@ function route(initial) {
   const hydrated = initial && app.dataset.route === p.path && p.status === 200;
   if (!hydrated) { app.innerHTML = p.html; app.dataset.route = p.path; applyMeta(p); }
   markNav(p.nav);
+  schedView();
   wire(p, !initial);
   if (!initial) {
     const h1 = app.querySelector("h1");
@@ -54,6 +55,16 @@ document.addEventListener("click", e => {
   if (a.href === location.href) { scrollTo(0, 0); return; }
   go(a.pathname + a.search);
 });
+
+/* Weekly schedule: «جديد» comes down when its date passes; on phones the visitor picks cards or a table (remembered) */
+function schedView(v) {
+  if (v) store.set("schedView", v); else v = store.get("schedView", "cards") === "table" ? "table" : "cards";
+  const day = todayRiyadh();
+  app.querySelectorAll(".sc-new[data-until]").forEach(b => { if (b.dataset.until < day) b.remove(); });
+  app.querySelectorAll(".sched-w").forEach(w => w.classList.toggle("as-table", v === "table"));
+  app.querySelectorAll(".sv button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.sv === v)));
+}
+app.addEventListener("click", e => { const b = e.target.closest(".sv button[data-sv]"); if (b) schedView(b.dataset.sv === "table" ? "table" : "cards"); });
 
 /* ───────── Per-page behaviour ───────── */
 function wire(p, byNavigation) {

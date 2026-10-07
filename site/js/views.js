@@ -3,7 +3,7 @@
 import {
   SITE, NAME, NAME_FULL, OFFICIAL_PRE, FULL_NAME, ROLE, OFFICIAL_NAME, YT_CHANNEL, TG_CHANNEL, LINKS, SECTIONS, COVER, COVER_PALETTE, PAGE, MAXQ,
   state, byId, seriesById, secById, ic, esc, fmtNum, fmtYear, ldate, dur, isoDur, hours, dg, cleanQuery, oneOf, safeUrl, safeYt, safeLang, safeDecode, jsonLd,
-  DOCS, SCHEDULE, kindIcon, useLabel, label, mainTitle, fullTitle, secOfSeries, secOfLesson, seriesOrder, lang, thumb, STAR, match, sectionCount, visible, isFlat, seriesIn, href, fmtDate,
+  DOCS, SCHEDULE, todayRiyadh, kindIcon, useLabel, label, mainTitle, fullTitle, secOfSeries, secOfLesson, seriesOrder, lang, thumb, STAR, match, sectionCount, visible, isFlat, seriesIn, href, fmtDate,
 } from "./core.js";
 
 const OG_DEFAULT = SITE + "/og/default.png";
@@ -299,7 +299,10 @@ function announcementsPage() {
   });
 }
 
-/* The weekly schedule (SCHEDULE in core.js): the book links to its series, the number to the latest lesson given at that mosque */
+/* The weekly schedule (SCHEDULE in core.js): the book links to its series, the number to the latest lesson given at that mosque.
+   «جديد» marks a series whose latest lesson is under NEW_DAYS days old; app.js hides it once that date passes (pages are pre-rendered). */
+const NEW_DAYS = 7;
+const addDays = (iso, n) => new Date(Date.parse(iso + "T00:00:00Z") + n * 864e5).toISOString().slice(0, 10);
 function schedLatest(x) {
   if (!x.series || !seriesById[x.series]) return null;
   const re = x.match ? new RegExp(x.match) : null;
@@ -307,15 +310,20 @@ function schedLatest(x) {
   return ls.length ? { n: ls.length, last: ls.reduce((a, l) => (l.date || "") > (a.date || "") ? l : a) } : null;
 }
 export function scheduleTable(cls = "") {
+  const today = todayRiyadh();
   const rows = SCHEDULE.items.map(x => {
     const s = x.series && seriesById[x.series], got = schedLatest(x);
-    const book = s ? `<a href="${href.series(s.id)}">${esc(x.book)}</a>` : `<span>${esc(x.book)}</span><span class="sc-new">جديد</span>`;
+    const until = got && /^\d{4}-\d\d-\d\d$/.test(got.last.date || "") ? addDays(got.last.date, NEW_DAYS) : "";
+    const fresh = until && until >= today ? `<span class="sc-new" data-until="${until}">جديد</span>` : "";
+    const book = s ? `<a href="${href.series(s.id)}">${esc(x.book)}</a>${fresh}` : `<span>${esc(x.book)}</span>`;
     const last = got ? `<a class="sc-n" href="${href.lesson(got.last.id)}" title="آخر درس: ${esc(fullTitle(got.last))}" aria-label="آخر درس، ${fmtNum(got.n)} درسًا: ${esc(fullTitle(got.last))}">${fmtNum(got.n)}</a>`
       : `<span class="sc-n none" title="لم تُنشر دروس منه بعد" aria-label="لم تُنشر دروس منه بعد">—</span>`;
     return `<tr><td class="sc-day">${esc(x.when)}</td><td class="sc-time">${esc(x.time)}</td>
       <td class="sc-book">${book}<span class="sc-place">${ic("map-pin", 14)} ${esc(x.mosque)}، ${esc(x.area)}</span></td><td class="sc-last">${last}</td></tr>`;
   }).join("");
-  return `<div class="sched-w${cls ? " " + cls : ""}"><table class="sched"><caption class="sr-only">${esc(SCHEDULE.title)} ${esc(SCHEDULE.year)}</caption>
+  const tog = (v, i, t, on) => `<button type="button" data-sv="${v}" aria-pressed="${on}">${ic(i, 16)} ${t}</button>`;
+  return `<div class="sv" role="group" aria-label="طريقة عرض الجدول">${tog("cards", "layout-list", "بطاقات", true)}${tog("table", "table-2", "جدول", false)}</div>
+    <div class="sched-w${cls ? " " + cls : ""}"><table class="sched"><caption class="sr-only">${esc(SCHEDULE.title)} ${esc(SCHEDULE.year)}</caption>
     <thead><tr><th scope="col">اليوم</th><th scope="col">الوقت</th><th scope="col">الدرس والمكان</th><th scope="col">آخر درس</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function schedulePage() {
@@ -324,7 +332,7 @@ function schedulePage() {
     nav: "schedule", path: href.schedule(),
     band: pageBand(c, `<span class="sec-ic" aria-hidden="true">${ic("calendar-days", 34)}</span>`, "جدول الدروس الأسبوعي",
       `${esc(SCHEDULE.title)} ${esc(SCHEDULE.year)}، من ${esc(SCHEDULE.from)}. اضغط اسم الكتاب لفتح سلسلته، والرقم لآخر درس منه.`),
-    html: `${scheduleTable("top")}${pin ? `${head2("إعلان الجدول")}<div class="posters">${poster(pin, 0, true)}</div>` : ""}`,
+    html: `<div class="sched-page">${scheduleTable()}</div>${pin ? `${head2("إعلان الجدول")}<div class="posters">${poster(pin, 0, true)}</div>` : ""}`,
     title: withSite(`جدول الدروس الأسبوعي — ${SCHEDULE.title}`), description: clip(`مواعيد دروس ${NAME_FULL} الأسبوعية وأماكنها: ${SCHEDULE.items.map(x => x.book).join("، ")}.`, 200), jsonld: [c.ld],
   });
 }

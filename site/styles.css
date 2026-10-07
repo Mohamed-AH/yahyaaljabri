@@ -429,7 +429,7 @@ body.lock{overflow:hidden}
 .sched tbody tr{transition:background .2s}
 .sched tbody tr:hover{background:var(--hover)}
 .sc-day{font-weight:700;white-space:nowrap;width:1%}
-.sched-w.top{margin-top:28px}
+.sched-page{margin-top:28px}
 .sc-time{color:var(--mute);font-size:15px;white-space:nowrap;width:1%;padding-inline-end:36px!important}
 .sc-book a,.sc-book>span:first-child{font-weight:700;font-size:17px}
 .sc-book a:hover{color:var(--link);text-decoration:underline;text-underline-offset:5px}
@@ -438,15 +438,25 @@ body.lock{overflow:hidden}
 .sc-n{display:inline-block;min-width:54px;padding:4px 12px;border-radius:999px;background:var(--brass);color:#0c231c;font-weight:700;text-align:center;transition:filter .2s}
 a.sc-n:hover{filter:brightness(1.08)}
 .sc-n.none{background:var(--hover);color:var(--mute)}
+.sv{display:none}
 @media(max-width:640px){
-  .sched thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
-  .sched tr{display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"day time last" "book book last";column-gap:10px;padding:12px 14px;border-top:1px solid var(--line)}
-  .sched tbody tr:first-child{border-top:0}
-  .sched td{display:block;padding:0;border:0;width:auto}
-  .sc-day{grid-area:day;font-size:14px;color:var(--link)}
-  .sc-time{grid-area:time;font-size:14px}
-  .sc-book{grid-area:book;margin-top:2px}
-  .sc-book a,.sc-book>span:first-child{font-size:16px}
-  .sc-last{grid-area:last;align-self:center}
-  .sc-n{min-width:46px;padding:3px 10px}
+  .js .sv{display:flex;justify-content:flex-end;gap:6px;margin:-4px 0 10px}
+  .sv button{padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--mute);font-size:14px;font-weight:500;cursor:pointer}
+  .sv button[aria-pressed=true]{background:var(--night);border-color:var(--night);color:var(--brass)}
+  .sched-page{margin-top:20px}
+  .sched-w:not(.as-table) .sched thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+  .sched-w:not(.as-table) .sched tr{display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"day time last" "book book last";column-gap:10px;padding:12px 14px;border-top:1px solid var(--line)}
+  .sched-w:not(.as-table) .sched tbody tr:first-child{border-top:0}
+  .sched-w:not(.as-table) .sched td{display:block;padding:0;border:0;width:auto}
+  .sched-w:not(.as-table) .sc-day{grid-area:day;font-size:14px;color:var(--link)}
+  .sched-w:not(.as-table) .sc-time{grid-area:time;font-size:14px}
+  .sched-w:not(.as-table) .sc-book{grid-area:book;margin-top:2px}
+  .sched-w:not(.as-table) .sc-last{grid-area:last;align-self:center}
+  .sched-w.as-table .sched th{padding:9px 8px;font-size:12.5px}
+  .sched-w.as-table .sched td{padding:10px 8px;line-height:1.5}
+  .sched-w.as-table .sc-day{font-size:13.5px;white-space:normal;width:auto;min-width:3.6em}
+  .sched-w.as-table .sc-time{font-size:13px;white-space:normal;padding-inline-end:8px!important}
+  .sched-w.as-table .sc-place{font-size:12px}
+  .sc-book a,.sc-book>span:first-child{font-size:15.5px}
+  .sc-n{min-width:42px;padding:3px 9px}
 }
