@@ -231,13 +231,14 @@ function lessonPage(id) {
     ? !l.src ? { "@type": "AudioObject", url: tg }
     : { "@type": "AudioObject", contentUrl: safeUrl(l.src), encodingFormat: MIME[(l.src.split("?")[0].split(".").pop() || "").toLowerCase()] || "audio/mpeg" }
     : { "@type": "VideoObject", thumbnailUrl: [`https://i.ytimg.com/vi/${safeYt(l.id)}/hqdefault.jpg`], embedUrl: `https://www.youtube.com/embed/${safeYt(l.id)}` };
+  const when = /^\d{4}-\d\d-\d\d$/.test(l.date || "") ? `${l.date}T00:00:00+03:00` : l.date;   // Google wants a full datetime with a zone; our dates are Riyadh days
   return mkPage({
     nav: s.sec, path: href.lesson(l.id), band: bandHtml, html, wire: { t: "lesson", id: l.id, next: next ? href.lesson(next.id) : "" }, ogType: "article",
     image: l.kind === "video" ? `https://i.ytimg.com/vi/${safeYt(l.id)}/hqdefault.jpg` : OG_DEFAULT,
     title: withSite(title), description: desc,
     jsonld: [c.ld, { "@context": "https://schema.org", ...ld, name: title, description: desc, inLanguage: "ar",
-      ...(l.date ? (l.kind === "video" ? { uploadDate: l.date } : { dateCreated: l.date }) : {}), ...(l.duration ? { duration: isoDur(l.duration) } : {}),
-      author: { "@type": "Person", name: FULL_NAME }, isPartOf: { "@type": "CreativeWorkSeries", name: s.title, url: SITE + href.series(s.id) } }],
+      ...(l.date ? (l.kind === "video" ? { uploadDate: when } : { dateCreated: when }) : {}), ...(l.duration ? { duration: isoDur(l.duration) } : {}),
+      author: { "@type": "Person", name: FULL_NAME, url: SITE + href.about() }, isPartOf: { "@type": "CreativeWorkSeries", name: s.title, url: SITE + href.series(s.id) } }],
   });
 }
 
