@@ -4,7 +4,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { init, setAnnouncements, applyMedia, mergeLibraries, state, SITE, byId, seriesById, SECTIONS, secById, isFlat, href } from "../site/js/core.js";
+import { init, setAnnouncements, applyMedia, mergeLibraries, state, SITE, byId, seriesById, SECTIONS, secById, isFlat, href, SCHEDULE } from "../site/js/core.js";
 import { resolve, notFoundPage, chromeTop, chromeBottom, footer, headHtml } from "../site/js/views.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -38,6 +38,7 @@ const routes = ["/", "/library/", "/search/"];
 if (DB.books.length) routes.push("/books/");
 if (state.bio) routes.push("/about/");
 routes.push("/announcements/", "/tazkiyat/");
+if (SCHEDULE.items.length) routes.push("/schedule/");
 for (const s of SECTIONS) if (s.id !== "books" && !isFlat(s.id) && DB.series.some(x => x.sec === s.id)) routes.push(`/section/${s.id}/`);
 for (const s of DB.series) routes.push(href.series(s.id));
 for (const l of DB.lessons) routes.push(href.lesson(l.id));

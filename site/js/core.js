@@ -152,7 +152,7 @@ export const isFlat = secId => seriesIn(secId).length === 1;   // a section with
 
 /* ───────── URLs (real paths, root-relative) ───────── */
 export const href = {
-  home: () => "/", library: () => "/library/", books: () => "/books/", about: () => "/about/", announcements: () => "/announcements/", documents: () => "/tazkiyat/",
+  schedule: () => "/schedule/", home: () => "/", library: () => "/library/", books: () => "/books/", about: () => "/about/", announcements: () => "/announcements/", documents: () => "/tazkiyat/",
   series: id => `/series/${encodeURIComponent(id)}/`,
   lesson: id => `/lesson/${encodeURIComponent(id)}/`,
   search: (qs = "") => "/search/" + qs,
@@ -163,6 +163,23 @@ export { seriesIn };
 /* ───────── Scholars' recommendations (tazkiyat) and written advice ─────────  Files in site/docs/ (from the owner, 2026-10-05).
    Letters: photos straightened and cleaned; shown in full (the owner wants the ID and the scholars' numbers kept, 2026-10-05).
    Text = transcription of the letter as written (keep its spelling). Advice PDFs are published unchanged, as their writer sent them. */
+/* The weekly lesson schedule (from the latest «جدول…» poster; update it when a new one is posted). day: 0 = Saturday … 6 = Friday,
+   -1 = daily; series: the series on the site (none yet for a new book); match: picks this mosque's lessons inside a shared series. */
+export const SCHEDULE = {
+  title: "جدول الدروس العلمية بمحافظة جدة", year: "١٤٤٨هـ", from: "مركز الدعوة والإرشاد بمحافظة جدة",
+  items: [
+    { book: "شرح كتاب الداء والدواء لابن القيم", series: "daa-dawa", day: -1, when: "يوميًا", time: "بعد العصر", mosque: "جامع السيدة زين", area: "المروة" },
+    { book: "شرح كتاب التوحيد", series: "tawhid", match: "الشريف", day: 0, when: "السبت", time: "بعد العصر", mosque: "جامع الشريف", area: "المروة" },
+    { book: "شرح سنن الترمذي", series: "sunan", match: "الترمذي", day: 0, when: "السبت", time: "بعد العشاء", mosque: "جامع السيدة زين", area: "المروة" },
+    { book: "شرح كتاب التوحيد", series: "tawhid", match: "قويزة|المساعد", day: 1, when: "أول أحد من كل شهر", time: "بعد المغرب", mosque: "جامع فرج المساعد", area: "قويزة" },
+    { book: "حادي الأرواح لابن القيم", day: 1, when: "الأحد", time: "بعد العشاء", mosque: "جامع الإيمان", area: "النزهة" },
+    { book: "شرح صحيح البخاري", series: "bukhari", day: 2, when: "الاثنين", time: "بعد العشاء", mosque: "جامع السيدة زين", area: "المروة" },
+    { book: "مفتاح دار السعادة لابن القيم", day: 5, when: "الخميس", time: "بعد العصر", mosque: "جامع السيدة زين", area: "المروة" },
+    { book: "شرح صحيح مسلم", series: "muslim", day: 6, when: "الجمعة", time: "بعد العصر", mosque: "جامع أم المؤمنين عائشة", area: "المروة" },
+    { book: "تفسير ابن كثير", series: "ibn-kathir", day: 6, when: "الجمعة", time: "بعد العشاء", mosque: "جامع السيدة زين", area: "المروة" },
+  ],
+};
+
 export const DOCS = {
   tazkiyat: [
     { id: "tazkiya-1421", title: "تزكية الشيخين أحمد بن يحيى النجمي وزيد بن محمد المدخلي رحمهما الله", by: "الشيخ أحمد بن يحيى النجمي والشيخ زيد بن محمد بن هادي المدخلي", date: "٣ / ١ / ١٤٢١هـ",
@@ -202,7 +219,7 @@ export function setAnnouncements(list, day = todayRiyadh()) {
   state.ann = (Array.isArray(list) ? list : []).filter(a => a && typeof a.title === "string" && /^\/ann\/[0-9a-f]{16}\.(jpg|png|webp)$/.test(a.image)
     && (!a.until || (/^\d{4}-\d\d-\d\d$/.test(a.until) && a.until >= day)))
     .sort((a, b) => (b.pin === true) - (a.pin === true))   // the lesson schedule first
-    .map(a => ({ id: String(a.id || "").replace(/[^0-9a-f]/g, "").slice(0, 16), title: a.title.slice(0, 160), image: a.image, until: a.until || "",
+    .map(a => ({ id: String(a.id || "").replace(/[^0-9a-f]/g, "").slice(0, 16), title: a.title.slice(0, 160), image: a.image, until: a.until || "", pin: a.pin === true,
       thumb: a.image.replace(/^\/ann\/(\w+)\.\w+$/, "/ann/thumb/$1.webp"), w: Number.isInteger(a.w) && a.w > 0 ? a.w : 1131, h: Number.isInteger(a.h) && a.h > 0 ? a.h : 1600 }));
   return state.ann;
 }

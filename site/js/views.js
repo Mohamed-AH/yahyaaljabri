@@ -3,7 +3,7 @@
 import {
   SITE, NAME, NAME_FULL, OFFICIAL_PRE, FULL_NAME, ROLE, OFFICIAL_NAME, YT_CHANNEL, TG_CHANNEL, LINKS, SECTIONS, COVER, COVER_PALETTE, PAGE, MAXQ,
   state, byId, seriesById, secById, ic, esc, fmtNum, fmtYear, ldate, dur, isoDur, hours, dg, cleanQuery, oneOf, safeUrl, safeYt, safeLang, safeDecode, jsonLd,
-  DOCS, kindIcon, useLabel, label, mainTitle, fullTitle, secOfSeries, secOfLesson, seriesOrder, lang, thumb, STAR, match, sectionCount, visible, isFlat, seriesIn, href, fmtDate,
+  DOCS, SCHEDULE, kindIcon, useLabel, label, mainTitle, fullTitle, secOfSeries, secOfLesson, seriesOrder, lang, thumb, STAR, match, sectionCount, visible, isFlat, seriesIn, href, fmtDate,
 } from "./core.js";
 
 const OG_DEFAULT = SITE + "/og/default.png";
@@ -97,6 +97,7 @@ function home() {
     ${feat}`, "hero");
   const html = `
     <nav class="chips" aria-label="أقسام المكتبة">${vis.map(s => chip(s, sectionCount(s.id))).join("")}</nav>
+    ${SCHEDULE.items.length ? `${head2("جدول الدروس الأسبوعي", more(href.schedule(), "الجدول وإعلانه"))}${scheduleTable()}` : ""}
     ${state.ann.length ? `${head2("إعلانات الدروس", more(href.announcements(), "كل الإعلانات"))}<div class="posters strip">${state.ann.slice(0, 6).map((a, i) => poster(a, i)).join("")}</div>` : ""}
     ${head2("التزكيات والوصايا", more(href.documents(), "عرض الكل"))}<div class="posters strip">${docsHome()}</div>
     ${bio ? `<section class="about-teaser" aria-labelledby="ab-h"><h2 id="ab-h">عن الشيخ</h2>${bio.summary ? `<p>${esc(bio.summary)}</p>` : ""}<a class="btn" href="${href.about()}">اقرأ المزيد ${ic("chevron-left", 16)}</a></section>` : ""}
@@ -298,6 +299,36 @@ function announcementsPage() {
   });
 }
 
+/* The weekly schedule (SCHEDULE in core.js): the book links to its series, the number to the latest lesson given at that mosque */
+function schedLatest(x) {
+  if (!x.series || !seriesById[x.series]) return null;
+  const re = x.match ? new RegExp(x.match) : null;
+  const ls = state.DB.lessons.filter(l => l.series === x.series && (!re || re.test(l.title)));
+  return ls.length ? { n: ls.length, last: ls.reduce((a, l) => (l.date || "") > (a.date || "") ? l : a) } : null;
+}
+export function scheduleTable(cls = "") {
+  const rows = SCHEDULE.items.map(x => {
+    const s = x.series && seriesById[x.series], got = schedLatest(x);
+    const book = s ? `<a href="${href.series(s.id)}">${esc(x.book)}</a>` : `<span>${esc(x.book)}</span><span class="sc-new">جديد</span>`;
+    const last = got ? `<a class="sc-n" href="${href.lesson(got.last.id)}" title="آخر درس: ${esc(fullTitle(got.last))}" aria-label="آخر درس، ${fmtNum(got.n)} درسًا: ${esc(fullTitle(got.last))}">${fmtNum(got.n)}</a>`
+      : `<span class="sc-n none" title="لم تُنشر دروس منه بعد" aria-label="لم تُنشر دروس منه بعد">—</span>`;
+    return `<tr><td class="sc-day">${esc(x.when)}</td><td class="sc-time">${esc(x.time)}</td>
+      <td class="sc-book">${book}<span class="sc-place">${ic("map-pin", 14)} ${esc(x.mosque)}، ${esc(x.area)}</span></td><td class="sc-last">${last}</td></tr>`;
+  }).join("");
+  return `<div class="sched-w${cls ? " " + cls : ""}"><table class="sched"><caption class="sr-only">${esc(SCHEDULE.title)} ${esc(SCHEDULE.year)}</caption>
+    <thead><tr><th scope="col">اليوم</th><th scope="col">الوقت</th><th scope="col">الدرس والمكان</th><th scope="col">آخر درس</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function schedulePage() {
+  const c = crumbs([{ t: "جدول الدروس" }]), pin = state.ann.find(a => a.pin);
+  return mkPage({
+    nav: "schedule", path: href.schedule(),
+    band: pageBand(c, `<span class="sec-ic" aria-hidden="true">${ic("calendar-days", 34)}</span>`, "جدول الدروس الأسبوعي",
+      `${esc(SCHEDULE.title)} ${esc(SCHEDULE.year)}، من ${esc(SCHEDULE.from)}. اضغط اسم الكتاب لفتح سلسلته، والرقم لآخر درس منه.`),
+    html: `${scheduleTable("top")}${pin ? `${head2("إعلان الجدول")}<div class="posters">${poster(pin, 0, true)}</div>` : ""}`,
+    title: withSite(`جدول الدروس الأسبوعي — ${SCHEDULE.title}`), description: clip(`مواعيد دروس ${NAME_FULL} الأسبوعية وأماكنها: ${SCHEDULE.items.map(x => x.book).join("، ")}.`, 200), jsonld: [c.ld],
+  });
+}
+
 /* Scholars' recommendations (photos + transcription) and written advice (PDFs), from DOCS in core.js */
 const docTile = (d, i) => `<figure class="poster" style="--i:${i}"><a class="poster-img" href="${href.documents()}#${d.id}"><img src="${d.thumb}" alt="${esc(d.title)}" width="560" height="${d.h ? Math.round(d.h * 560 / d.w) : 725}" loading="lazy" decoding="async"></a>
     <figcaption><span class="t">${esc(d.title)}</span><span class="s">${ic("calendar", 14)} ${esc(d.date)}</span></figcaption></figure>`;
@@ -369,6 +400,7 @@ export function resolve(pathname, params = new URLSearchParams()) {
   else if (segs.length === 1 && a === "books") p = booksPage();
   else if (segs.length === 1 && a === "about") p = aboutPage();
   else if (segs.length === 1 && a === "announcements") p = announcementsPage();
+  else if (segs.length === 1 && a === "schedule" && SCHEDULE.items.length) p = schedulePage();
   else if (segs.length === 1 && a === "tazkiyat") p = documentsPage();
   else if (segs.length === 1 && a === "search") p = searchPage(params);
   else if (segs.length === 2 && a === "section") p = sectionPage(b);
@@ -384,7 +416,7 @@ const navItems = () => {
   if (state.bio) items.push({ id: "about", t: "عن الشيخ", i: "book-marked", h: href.about() });
   return items;
 };
-const extraItems = () => [...(state.ann.length ? [{ id: "announcements", t: "إعلانات الدروس", i: "calendar", h: href.announcements(), n: state.ann.length }] : []),
+const extraItems = () => [...(SCHEDULE.items.length ? [{ id: "schedule", t: "جدول الدروس", i: "calendar-days", h: href.schedule() }] : []), ...(state.ann.length ? [{ id: "announcements", t: "إعلانات الدروس", i: "calendar", h: href.announcements(), n: state.ann.length }] : []),
   { id: "documents", t: "التزكيات والوصايا", i: "award", h: href.documents() }];
 const cur = (nav, id) => nav === id ? ' class="on" aria-current="page"' : "";
 export function chromeTop(nav) {
@@ -415,12 +447,13 @@ const dock = () => `<div class="dock" id="dock" hidden><div class="wrap dock-in"
 export function chromeBottom(nav) {
   const vis = navItems(), extra = ["lectures", "khutab", "books"].map(id => vis.find(s => s.id === id)).filter(Boolean)[0];
   const items = [{ id: "home", t: "الرئيسية", i: "house", h: "/" }, { id: "library", t: "الأقسام", i: "layout-grid", h: href.library() }, { id: "search", t: "بحث", i: "search", h: href.search(), mid: true }];
-  if (extra) items.push({ id: extra.id, t: extra.t.replace("الدروس ", ""), i: extra.i, h: extra.h });
+  if (SCHEDULE.items.length) items.push({ id: "schedule", t: "الجدول", i: "calendar-days", h: href.schedule() });
+  else if (extra) items.push({ id: extra.id, t: extra.t.replace("الدروس ", ""), i: extra.i, h: extra.h });
   return `${dock()}<nav class="bottom" id="bottom" aria-label="التنقل السريع">${items.map(x => `<a class="bn${x.mid ? " mid" : ""}" href="${x.h}" data-nav="${x.id}"${nav === x.id ? ' aria-current="page"' : ""}><span class="bn-i">${ic(x.i, x.mid ? 24 : 22)}</span><span>${x.t}</span></a>`).join("")}
     <a class="bn" href="#" role="button" data-nav="more" id="bn-more"><span class="bn-i">${ic("menu", 22)}</span><span>المزيد</span></a></nav>`;
 }
 export const footer = () => `<footer class="foot"><div class="wrap">
-  <p class="foot-official"><span class="mark" aria-hidden="true">${STAR}</span><strong>${esc(OFFICIAL_NAME)} حفظه الله ورعاه</strong>${state.bio ? `، <a href="${href.about()}">عن الشيخ</a>` : ""}${state.ann.length ? `، <a href="${href.announcements()}">إعلانات الدروس</a>` : ""}، <a href="${href.documents()}">التزكيات والوصايا</a></p>
+  <p class="foot-official"><span class="mark" aria-hidden="true">${STAR}</span><strong>${esc(OFFICIAL_NAME)} حفظه الله ورعاه</strong>${state.bio ? `، <a href="${href.about()}">عن الشيخ</a>` : ""}${SCHEDULE.items.length ? `، <a href="${href.schedule()}">جدول الدروس</a>` : ""}${state.ann.length ? `، <a href="${href.announcements()}">إعلانات الدروس</a>` : ""}، <a href="${href.documents()}">التزكيات والوصايا</a></p>
   <p>المواد الصوتية مأخوذة من <a href="${TG_CHANNEL}" target="_blank" rel="noopener">قنوات الشيخ على تيليجرام</a>.</p>
   <p class="foot-links">${LINKS.map(x => `<a href="${x.h}" target="_blank" rel="noopener">${x.t}</a>`).join("")}</p>
   <p class="foot-up">آخر تحديث للفهرس: ${fmtDate(state.DB.updated)}</p></div></footer>`;
