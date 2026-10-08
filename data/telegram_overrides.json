@@ -43,5 +43,10 @@
  "jabiri-3381": {
   "publish": false,
   "note": "moshif 2026-10-08 (screenshot of محاضرات وكلمات); fatwas by another sheikh (سامي), not Sheikh Yahya"
+ },
+ "jabiri-3805": {
+  "title": "درس صحيح البخاري: عصر الثلاثاء يوم عرفة، ٩ ذو الحجة ١٤٤٧هـ",
+  "series": "bukhari",
+  "note": "moshif 2026-10-08: «rename the above lesson ثلاثاء to البخاري too»"
  }
 }
