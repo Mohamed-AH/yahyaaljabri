@@ -30,5 +30,18 @@
  "jabiri-4581": {
   "title": "خطر الحوثيين",
   "note": "moshif 2026-10-08 (screenshot of محاضرات وكلمات); file name was in the title"
+ },
+ "jabiri-3468": {
+  "title": "درس صحيح البخاري: باب موت يوم الاثنين، ١٥ شعبان ١٤٤٧هـ",
+  "series": "bukhari",
+  "note": "moshif 2026-10-08 (screenshot of محاضرات وكلمات)"
+ },
+ "jabiri-3402": {
+  "series": "musnad",
+  "note": "moshif 2026-10-08 (screenshot of محاضرات وكلمات)"
+ },
+ "jabiri-3381": {
+  "publish": false,
+  "note": "moshif 2026-10-08 (screenshot of محاضرات وكلمات); fatwas by another sheikh (سامي), not Sheikh Yahya"
  }
 }
