@@ -24,6 +24,8 @@ SERIES = [
     ('khutab',      'خطب الجمعة',                     'khutab',  r'^\s*(?:مقتطف\s*من\s*)?(?:خطبة|خطبتا|خطبتي|خطبه|خطب\b)'),   # a khutba is a khutba, whatever its subject
     ('usul-tafsir', 'مقدمة في أصول التفسير',          'tafsir',  r'[أا]صول\s*التفسير'),   # the team 2026-10-09: a whole book read, its own series
     ('ibn-kathir',  'تفسير ابن كثير',                 'tafsir',  r'ابن\s*كثير|بن\s*كثير'),
+    ('durra',       'الدرة الفاخرة للسعدي',           'aqeedah', r'الدرة\s*الفاخرة'),      # the team 2026-10-09: own series, not تفسير ابن سعدي
+    ('manhaj-haq',  'التعليق على منظومة منهج الحق للسعدي', 'aqeedah', r'منهج\s*ال?حق'),
     ('saadi',       'تفسير ابن سعدي',                 'tafsir',  r'سعدي'),
     ('shawkani',    'التعليق على تفسير الشوكاني',     'tafsir',  r'الشوكاني|فتح\s*القدير'),
     ('tafsir',      'دروس في التفسير',                'tafsir',  r'تفسير'),
