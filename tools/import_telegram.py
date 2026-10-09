@@ -1,7 +1,8 @@
 """lessons.json (from tools/telegram_lessons.py) -> site/data/library.json.
 
 Lessons that still carry a review flag (no title, another speaker, ...) are left out until a person fixes them;
-corrections go in data/telegram_overrides.json: {"<lesson id>": {"title": "...", "series": "<id>", "publish": true|false}}.
+corrections go in data/telegram_overrides.json: {"<lesson id>": {"title": "...", "series": "<id>", "publish": true|false}};
+spelling-only title fixes in data/title_spelling.json: {"<lesson id>": "<title>"} (an override title wins).
 """
 import json, os, sys, collections
 
@@ -13,6 +14,8 @@ src = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.environ.get('TELEGRA
 lessons = json.load(open(src, encoding='utf-8'))
 ov_path = os.path.join(ROOT, 'data', 'telegram_overrides.json')
 overrides = json.load(open(ov_path, encoding='utf-8')) if os.path.exists(ov_path) else {}
+sp_path = os.path.join(ROOT, 'data', 'title_spelling.json')   # {"<id>": "<title>"}: spelling-only fixes (2026-10-09 pass); an override title wins
+spelling = json.load(open(sp_path, encoding='utf-8')) if os.path.exists(sp_path) else {}
 meta = {sid: (title, sec) for sid, title, sec, _ in SERIES}
 meta['misc'] = ('دروس ومحاضرات متفرقة', 'lectures')
 MERGE = {'misc': 'lectures'}     # 2026-10-06 (owner): the one-off talks and «محاضرات وكلمات» are one series
@@ -20,6 +23,7 @@ MERGE = {'misc': 'lectures'}     # 2026-10-06 (owner): the one-off talks and «�
 out_lessons, skipped = [], collections.Counter()
 for l in lessons:
     o = overrides.get(l['id'], {})
+    if not o.get('title') and spelling.get(l['id']): l['title'] = spelling[l['id']]
     if o.get('title'): l['title'], l['flags'] = o['title'], [f for f in l['flags'] if f not in ('no title', 'no series')]
     if o.get('series'): l['series'], l['flags'] = o['series'], [f for f in l['flags'] if f != 'no series']
     publish = o.get('publish', not l['flags'])
