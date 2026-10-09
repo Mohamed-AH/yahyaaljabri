@@ -141,6 +141,7 @@ def clean(s):
     s = unicodedata.normalize('NFC', s or '')     # some posts write ئ as ي + a combining hamza, which no pattern would match
     s = EMOJI.sub(' ', s).replace('_', ' ').replace('ـ', '').replace('ﻯ', 'ى').replace('ﻱ', 'ي')
     s = re.sub(r'[ً-ْ]', '', s)               # diacritics
+    s = re.sub(r'[\u200b-\u200f\u2066-\u2069\ufeff]', '', s)   # zero-width and direction marks (some jabrih titles start with U+200B)
     return re.sub(r'\s+', ' ', s).strip()
 
 
