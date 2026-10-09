@@ -174,5 +174,82 @@
  "jabiri-3839": {
   "title": "قصيدة في السنة لابن المبارك ١٧ ذو الحجة ١٤٤٧هـ",
   "note": "moshif 2026-10-09: the name was cut at «لابن»"
+ },
+ "jabiri-4284": {
+  "series": "tawhid",
+  "note": "team via moshif 2026-10-09 (دروس في التفسير review)",
+  "title": "درس كتاب التوحيد في جامع الشريف ١٨/٢/١٤٤٨هـ: باب تفسير التوحيد"
+ },
+ "jabiri-3404": {
+  "series": "riyad",
+  "note": "team via moshif 2026-10-09 (دروس في التفسير review)",
+  "title": "درس رياض الصالحين: تفسير آية الكرسي ١/٨/١٤٤٧هـ"
+ },
+ "jabiri-1615": {
+  "series": "muslim",
+  "note": "team via moshif 2026-10-09 (دروس في التفسير review)"
+ },
+ "jabiri-1597": {
+  "series": "muslim",
+  "note": "team via moshif 2026-10-09 (دروس في التفسير review)",
+  "title": "درس صحيح مسلم وتفسير سورة النصر"
+ },
+ "jabiri-1517": {
+  "series": "muslim",
+  "note": "team via moshif 2026-10-09 (دروس في التفسير review)"
+ },
+ "jabiri-1582": {
+  "series": "qawl-mufid",
+  "note": "team via moshif 2026-10-09 (دروس في التفسير review)",
+  "title": "باب تفسير التوحيد وشهادة أن لا إله إلا الله، شرح الشيخ ابن عثيمين"
+ },
+ "jabiri-1320": {
+  "series": "ibn-kathir",
+  "note": "team via moshif 2026-10-09 (دروس في التفسير review)"
+ },
+ "jabiri-1321": {
+  "series": "ibn-kathir",
+  "note": "team via moshif 2026-10-09 (دروس في التفسير review)",
+  "title": "الدرس الثامن: تفسير البسملة"
+ },
+ "jabiri-1325": {
+  "series": "ibn-kathir",
+  "note": "team via moshif 2026-10-09 (دروس في التفسير review)",
+  "title": "الدرس التاسع: من قوله «مالك» إلى قوله «الصراط»"
+ },
+ "jabiri-4235": {
+  "series": "ibn-kathir",
+  "note": "team via moshif 2026-10-09 (دروس في التفسير review)"
+ },
+ "jabiri-1550": {
+  "series": "ibn-kathir",
+  "note": "team via moshif 2026-10-09 (دروس في التفسير review)",
+  "title": "تفسير الصفحة الثانية من آل عمران، قراءة الشيخ أحمد الجابري"
+ },
+ "jabiri-2121": {
+  "series": "fath-majid",
+  "note": "team via moshif 2026-10-09 (دروس في التفسير review)",
+  "title": "الدرس الثامن من فتح المجيد: باب تفسير التوحيد وشهادة أن لا إله إلا الله"
+ },
+ "jabiri-2055": {
+  "series": "tawhid",
+  "note": "team via moshif 2026-10-09 (دروس في التفسير review)"
+ },
+ "jabiri-1754": {
+  "series": "shawkani",
+  "note": "team via moshif 2026-10-09 (دروس في التفسير review)",
+  "title": "تفسير سور القمر والرحمن والواقعة"
+ },
+ "jabiri-2367": {
+  "title": "تفسير آيات من آخر سورة الدخان",
+  "note": "team via moshif 2026-10-09 (دروس في التفسير review); spelling"
+ },
+ "jabiri-2058": {
+  "title": "محاضرة بعنوان تفسير قوله تعالى: الذين آمنوا ولم يلبسوا إيمانهم بظلم",
+  "note": "team via moshif 2026-10-09 (دروس في التفسير review); spelling"
+ },
+ "jabiri-2184": {
+  "title": "درس التفسير لقول الله تعالى: يا أيها الناس اعبدوا ربكم ١٨/٦/١٤٤٦هـ",
+  "note": "team via moshif 2026-10-09 (دروس في التفسير review); stays in دروس في التفسير"
  }
 }

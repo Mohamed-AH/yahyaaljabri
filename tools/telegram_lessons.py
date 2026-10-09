@@ -22,6 +22,7 @@ SERIES = [
     # a title that starts with «صلاة …» is a recitation, whatever else the post mentions
     ('tilawa',      'تلاوات',                         'tilawa',  r'^\s*(?:ص|صلا|صلاة|صلاه|صلأة|صااة|يصلاة)\s*(?:ال|أل)?(?:فجر|فجري|عشاء|تهجد|قيام|تراويح|مغرب)'),
     ('khutab',      'خطب الجمعة',                     'khutab',  r'^\s*(?:مقتطف\s*من\s*)?(?:خطبة|خطبتا|خطبتي|خطبه|خطب\b)'),   # a khutba is a khutba, whatever its subject
+    ('usul-tafsir', 'مقدمة في أصول التفسير',          'tafsir',  r'[أا]صول\s*التفسير'),   # the team 2026-10-09: a whole book read, its own series
     ('ibn-kathir',  'تفسير ابن كثير',                 'tafsir',  r'ابن\s*كثير|بن\s*كثير'),
     ('saadi',       'تفسير ابن سعدي',                 'tafsir',  r'سعدي'),
     ('shawkani',    'التعليق على تفسير الشوكاني',     'tafsir',  r'الشوكاني|فتح\s*القدير'),
