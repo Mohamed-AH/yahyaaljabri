@@ -438,5 +438,9 @@
  "jabiri-2204": {
   "title": "محاضرة للشيخ أحمد بن يحيى بن كردم الجابري بعنوان الدين النصيحة، بتقديم الشيخ يحيى وختامه",
   "note": "team review 2026-10-10 (possible other speakers): the Sheikh introduces and closes"
+ },
+ "jabiri-1365": {
+  "publish": false,
+  "note": "moshif 2026-10-10: delete (كتاب الجنائز ص ب)"
  }
 }
