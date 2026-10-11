@@ -22,8 +22,12 @@ SERIES = [
     # a title that starts with «صلاة …» is a recitation, whatever else the post mentions
     ('tilawa',      'تلاوات',                         'tilawa',  r'^\s*(?:ص|صلا|صلاة|صلاه|صلأة|صااة|يصلاة)\s*(?:ال|أل)?(?:فجر|فجري|عشاء|تهجد|قيام|تراويح|مغرب)'),
     ('khutab',      'خطب الجمعة',                     'khutab',  r'^\s*(?:مقتطف\s*من\s*)?(?:خطبة|خطبتا|خطبتي|خطبه|خطب\b)'),   # a khutba is a khutba, whatever its subject
+    ('usul-tafsir', 'مقدمة في أصول التفسير',          'tafsir',  r'[أا]صول\s*التفسير'),   # the team 2026-10-09: a whole book read, its own series
     ('ibn-kathir',  'تفسير ابن كثير',                 'tafsir',  r'ابن\s*كثير|بن\s*كثير'),
+    ('durra',       'الدرة الفاخرة للسعدي',           'aqeedah', r'الدرة\s*الفاخرة'),      # the team 2026-10-09: own series, not تفسير ابن سعدي
+    ('manhaj-haq',  'التعليق على منظومة منهج الحق للسعدي', 'aqeedah', r'منهج\s*ال?حق'),
     ('saadi',       'تفسير ابن سعدي',                 'tafsir',  r'سعدي'),
+    ('nayl',        'شرح نيل الأوطار للشوكاني',       'hadith',  r'نيل\s*ال[أا]وطار'),   # 2026-10-09 owner: its own series, not تفسير الشوكاني
     ('shawkani',    'التعليق على تفسير الشوكاني',     'tafsir',  r'الشوكاني|فتح\s*القدير'),
     ('tafsir',      'دروس في التفسير',                'tafsir',  r'تفسير'),
     ('musnad',      'شرح مسند الإمام أحمد',           'hadith',  r'مسند'),
@@ -71,8 +75,9 @@ SERIES = [
     ('iman-salam',  'كتاب الإيمان لأبي عبيد',         'aqeedah', r'الإيمان\s*لأبي\s*عبيد|القاسم\s*بن\s*سلام'),
     ('bishr',       'عقيدة بشر الحافي',               'aqeedah', r'بشر\s*الحافي'),
     ('haiyya',      'القصيدة الحائية لابن أبي داود',  'aqeedah', r'القصيدة\s*الحائي'),
+    ('razi',        'التعليق على اعتقاد الشافعي وعقيدة الرازيين', 'aqeedah', r'الراز?يين|الرائيين'),   # moshif 2026-10-09: its own series
     ('shafii',      'إثبات الصفات للشافعي',           'aqeedah', r'الصفات\s*للشافعي|اعتقاد\s*الشافعي'),
-    ('qasida-sunna','قصيدة في السنة',                 'aqeedah', r'قصيدة\s*في\s*السنة'),
+    ('qasida-sunna','قصيدة في السنة لابن المبارك',     'aqeedah', r'قصيدة\s*في\s*السنة'),
     ('mujmal',      'مجمل اعتقاد أهل السنة',          'aqeedah', r'مجمل\s*اعتقاد'),
     ('majishun',    'إثبات الصفات والرؤية والرد على الجهمية', 'aqeedah', r'الماجشون|[إا]ثبات\s*الصفا?[تة]\s*والرؤية'),
     ('ittiba',      'اتباع الصحابة',                  'aqeedah', r'اتباع\s*الصحابة'),
@@ -137,6 +142,7 @@ def clean(s):
     s = unicodedata.normalize('NFC', s or '')     # some posts write ئ as ي + a combining hamza, which no pattern would match
     s = EMOJI.sub(' ', s).replace('_', ' ').replace('ـ', '').replace('ﻯ', 'ى').replace('ﻱ', 'ي')
     s = re.sub(r'[ً-ْ]', '', s)               # diacritics
+    s = re.sub(r'[\u200b-\u200f\u2066-\u2069\ufeff]', '', s)   # zero-width and direction marks (some jabrih titles start with U+200B)
     return re.sub(r'\s+', ' ', s).strip()
 
 
