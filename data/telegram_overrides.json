@@ -422,7 +422,8 @@
  },
  "jabiri-634": {
   "series": "fatawa",
-  "note": "team review 2026-10-10 (possible other speakers): a question and answer"
+  "note": "moshif 2026-10-11 img 20: same Q&A as jabrih-806 (duplicate)",
+  "publish": false
  },
  "jabiri-2232": {
   "series": "bukhari",
@@ -557,5 +558,10 @@
  "jabiri-665": {
   "title": "محاضرة بعنوان مفهوم السمع والطاعة عند أهل السنة والجماعة، بجامع الصيابة بمحافظة العارضة بمنطقة جازان",
   "note": "moshif 2026-10-11 img 19 (١٥ ربيع الثاني ١٤٤٠هـ, ضمن البرامج الدعوية)"
+ },
+ "jabrih-806": {
+  "title": "حكم قول لولا الله وأنت؟",
+  "series": "fatawa",
+  "note": "moshif 2026-10-11 img 20"
  }
 }
