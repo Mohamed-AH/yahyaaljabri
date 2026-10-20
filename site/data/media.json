@@ -1,4 +1,204 @@
 {
+ "https://t.me/jabiri/2601": {
+  "url": "https://media.yaljabri.com/audio/4c5987a69528399d.m4a",
+  "key": "audio/4c5987a69528399d.m4a",
+  "sha256": "4c5987a69528399d45929c2b4be5af1dd1eee7378a3b26729b47342804d0d43a",
+  "size": 19570447,
+  "duration": 3238,
+  "src_size": 80081666
+ },
+ "https://t.me/jabiri/2602": {
+  "url": "https://media.yaljabri.com/audio/c7ead3a577c71cfa.m4a",
+  "key": "audio/c7ead3a577c71cfa.m4a",
+  "sha256": "c7ead3a577c71cfa77f3b1589b956c2a47894d268c86e860d334eefcceeed989",
+  "size": 3856823,
+  "duration": 638,
+  "src_size": 15781685
+ },
+ "https://t.me/jabiri/2604": {
+  "url": "https://media.yaljabri.com/audio/b5d7d77db4b8f2a2.m4a",
+  "key": "audio/b5d7d77db4b8f2a2.m4a",
+  "sha256": "b5d7d77db4b8f2a252868bbdcb8319f3dfdec957bb50d95973934973767a79d4",
+  "size": 16814556,
+  "duration": 2782,
+  "src_size": 68804437
+ },
+ "https://t.me/jabiri/2605": {
+  "url": "https://media.yaljabri.com/audio/882bd09b96ea9055.m4a",
+  "key": "audio/882bd09b96ea9055.m4a",
+  "sha256": "882bd09b96ea90554311f1b3333312784014647bf44fd3515d5a2213a6cbbde4",
+  "size": 4082457,
+  "duration": 675,
+  "src_size": 16709513
+ },
+ "https://t.me/jabiri/2606": {
+  "url": "https://media.yaljabri.com/audio/0dab8a37f327fc5d.m4a",
+  "key": "audio/0dab8a37f327fc5d.m4a",
+  "sha256": "0dab8a37f327fc5df35490c4caa36edec3cb4e9b5598cd52d6514d3635246982",
+  "size": 3658691,
+  "duration": 605,
+  "src_size": 14971946
+ },
+ "https://t.me/jabiri/2607": {
+  "url": "https://media.yaljabri.com/audio/bbccf7a40619c99d.m4a",
+  "key": "audio/bbccf7a40619c99d.m4a",
+  "sha256": "bbccf7a40619c99df209db8d94e99e20c5144c830841baa957df136314339c0c",
+  "size": 36711969,
+  "duration": 6075,
+  "src_size": 150214252
+ },
+ "https://t.me/jabiri/2608": {
+  "url": "https://media.yaljabri.com/audio/b1379d4b58e7f00a.m4a",
+  "key": "audio/b1379d4b58e7f00a.m4a",
+  "sha256": "b1379d4b58e7f00a91fd63b724982cf0de374dacfdaba580a226dbd7c01a1fdc",
+  "size": 31970269,
+  "duration": 5290,
+  "src_size": 130814827
+ },
+ "https://t.me/jabiri/2609": {
+  "url": "https://media.yaljabri.com/audio/d839181cd8988a3c.m4a",
+  "key": "audio/d839181cd8988a3c.m4a",
+  "sha256": "d839181cd8988a3c6c35974c78605a1f0876af5386836c81e7c162ee2e900569",
+  "size": 48243488,
+  "duration": 7983,
+  "src_size": 197399438
+ },
+ "https://t.me/jabiri/2610": {
+  "url": "https://media.yaljabri.com/audio/64df7ec4415baf7d.m4a",
+  "key": "audio/64df7ec4415baf7d.m4a",
+  "sha256": "64df7ec4415baf7d999f1fb16d4243c8dd8ec2836b3cbf7e114e852184768061",
+  "size": 28848985,
+  "duration": 4774,
+  "src_size": 118041548
+ },
+ "https://t.me/jabiri/2626": {
+  "url": "https://media.yaljabri.com/audio/0a0075399ed17712.m4a",
+  "key": "audio/0a0075399ed17712.m4a",
+  "sha256": "0a0075399ed17712744db2b19fd9023a36bb1c3095f10a2512059f0e9041261f",
+  "size": 2901522,
+  "duration": 480,
+  "src_size": 11873447
+ },
+ "https://t.me/jabiri/2627": {
+  "url": "https://media.yaljabri.com/audio/1cacf3edddbb7ec8.m4a",
+  "key": "audio/1cacf3edddbb7ec8.m4a",
+  "sha256": "1cacf3edddbb7ec886797bd2d7d3a74499b520735c79c5977383310f791306fd",
+  "size": 9677871,
+  "duration": 1601,
+  "src_size": 39669756
+ },
+ "https://t.me/jabiri/2645": {
+  "url": "https://media.yaljabri.com/audio/2c166842ba5ab567.m4a",
+  "key": "audio/2c166842ba5ab567.m4a",
+  "sha256": "2c166842ba5ab567c94cd7d21a12521bd679e70bd554582b653d0e54cc1beb4f",
+  "size": 26718923,
+  "duration": 4421,
+  "src_size": 109325621
+ },
+ "https://t.me/jabiri/2646": {
+  "url": "https://media.yaljabri.com/audio/ad9839d742d62dbb.m4a",
+  "key": "audio/ad9839d742d62dbb.m4a",
+  "sha256": "ad9839d742d62dbb4814169970e8ee5fe24cfec177c25819f76336b76dc15cb1",
+  "size": 20624533,
+  "duration": 3413,
+  "src_size": 84390742
+ },
+ "https://t.me/jabiri/2647": {
+  "url": "https://media.yaljabri.com/audio/3d4b4efcd3fc4b89.m4a",
+  "key": "audio/3d4b4efcd3fc4b89.m4a",
+  "sha256": "3d4b4efcd3fc4b8918c67309ef400334fbfca4ef314a361fe58189abc8c05623",
+  "size": 6616083,
+  "duration": 1094,
+  "src_size": 43778048
+ },
+ "https://t.me/jabiri/2649": {
+  "url": "https://media.yaljabri.com/audio/117c5b1d3e68fc82.m4a",
+  "key": "audio/117c5b1d3e68fc82.m4a",
+  "sha256": "117c5b1d3e68fc8249053e7ae6e563e5205d6eb31410dfa09037f7c1f9a7225e",
+  "size": 20103105,
+  "duration": 3326,
+  "src_size": 82262312
+ },
+ "https://t.me/jabiri/2654": {
+  "url": "https://media.yaljabri.com/audio/9398a23c789cd636.m4a",
+  "key": "audio/9398a23c789cd636.m4a",
+  "sha256": "9398a23c789cd63660835e2c4aeea26748cdf97ccbea43e593d77556b5970792",
+  "size": 47583424,
+  "duration": 7874,
+  "src_size": 194702337
+ },
+ "https://t.me/jabiri/2655": {
+  "url": "https://media.yaljabri.com/audio/a087c9e3db43d3d0.m4a",
+  "key": "audio/a087c9e3db43d3d0.m4a",
+  "sha256": "a087c9e3db43d3d005d5cd7f804ed132242df17ebe1316f6b66e2e7a56908661",
+  "size": 33800046,
+  "duration": 5593,
+  "src_size": 138303246
+ },
+ "https://t.me/jabiri/2669": {
+  "url": "https://media.yaljabri.com/audio/122d0980d5d5771c.m4a",
+  "key": "audio/122d0980d5d5771c.m4a",
+  "sha256": "122d0980d5d5771c91ab6f9e3fe38f3b29dc8939d8212843e1750147cfcc38ae",
+  "size": 20313058,
+  "duration": 3361,
+  "src_size": 26888432
+ },
+ "https://t.me/jabiri/2675": {
+  "url": "https://media.yaljabri.com/audio/a7ec8e95548dd865.m4a",
+  "key": "audio/a7ec8e95548dd865.m4a",
+  "sha256": "a7ec8e95548dd8650cab3400b4210791b9a762a7025717b2dbae88c3d5e9686d",
+  "size": 16978453,
+  "duration": 2809,
+  "src_size": 69475743
+ },
+ "https://t.me/jabiri/2676": {
+  "url": "https://media.yaljabri.com/audio/6c1de709e43d3c37.m4a",
+  "key": "audio/6c1de709e43d3c37.m4a",
+  "sha256": "6c1de709e43d3c37847f5fed3e97f845dc9836b3abe6a5359a6a8e02847cacfe",
+  "size": 7406928,
+  "duration": 1225,
+  "src_size": 30307940
+ },
+ "https://t.me/jabiri/2681": {
+  "url": "https://media.yaljabri.com/audio/d56fb4ff6eca5b6c.m4a",
+  "key": "audio/d56fb4ff6eca5b6c.m4a",
+  "sha256": "d56fb4ff6eca5b6cb6c0df3acfb288789a4d877ca41632be08057d19a0f13fc6",
+  "size": 36820857,
+  "duration": 6093,
+  "src_size": 150670635
+ },
+ "https://t.me/jabiri/2682": {
+  "url": "https://media.yaljabri.com/audio/e824a4d933006373.m4a",
+  "key": "audio/e824a4d933006373.m4a",
+  "sha256": "e824a4d9330063735677be54c11dcc68b4e0799b8852cbdb419a8bd12c3acd54",
+  "size": 8823600,
+  "duration": 1460,
+  "src_size": 36105595
+ },
+ "https://t.me/jabiri/2684": {
+  "url": "https://media.yaljabri.com/audio/aa2a8d1ba52d4dd5.m4a",
+  "key": "audio/aa2a8d1ba52d4dd5.m4a",
+  "sha256": "aa2a8d1ba52d4dd504bc6801c87eeeb906e945ae21ebed4206cc9bf222dd974e",
+  "size": 29885671,
+  "duration": 4945,
+  "src_size": 122285760
+ },
+ "https://t.me/jabiri/2689": {
+  "url": "https://media.yaljabri.com/audio/c84f2296d4441d88.m4a",
+  "key": "audio/c84f2296d4441d88.m4a",
+  "sha256": "c84f2296d4441d884604a8a223a51e175b81193d4316de01a560aff5cce25b1f",
+  "size": 20759240,
+  "duration": 3435,
+  "src_size": 84945770
+ },
+ "https://t.me/jabiri/2691": {
+  "url": "https://media.yaljabri.com/audio/b522eeafe78f6abc.m4a",
+  "key": "audio/b522eeafe78f6abc.m4a",
+  "sha256": "b522eeafe78f6abc5851d2ae1590d971d384157b79e274ae46f4648112d71661",
+  "size": 9807526,
+  "duration": 1623,
+  "src_size": 40130395
+ },
  "https://t.me/jabiri/2695": {
   "url": "https://media.yaljabri.com/audio/9c60e516c772af92.m4a",
   "key": "audio/9c60e516c772af92.m4a",
