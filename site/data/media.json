@@ -1,4 +1,52 @@
 {
+ "https://t.me/jabiri/1329": {
+  "url": "https://media.yaljabri.com/audio/5c1f9ae4bf46da96.m4a",
+  "key": "audio/5c1f9ae4bf46da96.m4a",
+  "sha256": "5c1f9ae4bf46da96f7cfa6d0a2413d7f8b6c102d29f73f5e31cbe407eda2728c",
+  "size": 38849327,
+  "duration": 6428,
+  "src_size": 104734285
+ },
+ "https://t.me/jabiri/1330": {
+  "url": "https://media.yaljabri.com/audio/5567f0c82a350eb0.m4a",
+  "key": "audio/5567f0c82a350eb0.m4a",
+  "sha256": "5567f0c82a350eb0bda939868e34888dc41266419dd73cef419456ce06d1b685",
+  "size": 24155550,
+  "duration": 3997,
+  "src_size": 65133697
+ },
+ "https://t.me/jabiri/1331": {
+  "url": "https://media.yaljabri.com/audio/33ce39c2f157a201.m4a",
+  "key": "audio/33ce39c2f157a201.m4a",
+  "sha256": "33ce39c2f157a201aa35766e5d5b98cdcaefbc694bf9685c8aad1c9707b6bae9",
+  "size": 16590605,
+  "duration": 2745,
+  "src_size": 44746389
+ },
+ "https://t.me/jabiri/1332": {
+  "url": "https://media.yaljabri.com/audio/f451782e7cd84a0b.m4a",
+  "key": "audio/f451782e7cd84a0b.m4a",
+  "sha256": "f451782e7cd84a0bc0cf06a78c5ffe46c1437255c8ca0af63f6f94cdd4c0c66d",
+  "size": 16936918,
+  "duration": 2802,
+  "src_size": 45679340
+ },
+ "https://t.me/jabiri/1335": {
+  "url": "https://media.yaljabri.com/audio/bd3dc65204f24182.m4a",
+  "key": "audio/bd3dc65204f24182.m4a",
+  "sha256": "bd3dc65204f24182a24d77d37405d0b95c6dfefa40d6213a618ad89810e27cbc",
+  "size": 6719918,
+  "duration": 1112,
+  "src_size": 18142689
+ },
+ "https://t.me/jabiri/1336": {
+  "url": "https://media.yaljabri.com/audio/72d3a63c08853c99.m4a",
+  "key": "audio/72d3a63c08853c99.m4a",
+  "sha256": "72d3a63c08853c99f6f749f0b9b0462de32959584efa3a5e6946eb3dabf56725",
+  "size": 19876344,
+  "duration": 3289,
+  "src_size": 53600932
+ },
  "https://t.me/jabiri/1337": {
   "url": "https://media.yaljabri.com/audio/edf6bf3d88151b56.m4a",
   "key": "audio/edf6bf3d88151b56.m4a",
@@ -11037,6 +11085,14 @@
   "size": 13548408,
   "duration": 4452,
   "src_size": 17809174
+ },
+ "https://t.me/jabrih/2048": {
+  "url": "https://media.yaljabri.com/audio/faaafc877266cec5.m4a",
+  "key": "audio/faaafc877266cec5.m4a",
+  "sha256": "faaafc877266cec58d49dc30cedc01678e80c465a141667c56b6f27d4d65db6b",
+  "size": 10351299,
+  "duration": 2560,
+  "src_size": 12801862
  },
  "https://t.me/jabrih/2051": {
   "url": "https://media.yaljabri.com/audio/7ea244cc980d8ba6.m4a",
