@@ -40,10 +40,10 @@ t('search is noindex',(await p.locator('#m-robots').getAttribute('content')).inc
 await p.goto(B+'/');await p.waitForTimeout(1000);await p.fill('#q','التوحيد');await p.press('#q','Enter');await p.waitForTimeout(800);
 t('home search submit -> /search/?q',p.url().includes('/search/?q='),p.url());
 // 7. lesson pages
-await p.goto(B+'/lesson/jabiri-2236/');await p.waitForTimeout(1200);
+await p.goto(B+'/lesson/aljabri013-314/');await p.waitForTimeout(1200);   // its answer is a link post, so it is never hosted
 t('audio not mirrored yet -> Telegram link',(await p.locator('#tg-listen').getAttribute('href')).startsWith('https://t.me/'));
 t('sidebar windowed (<=25 rows)',(await p.locator('.side .row').count())<=25);
-await p.click('#next');await p.waitForTimeout(600);t('next lesson via SPA',/\/lesson\/[\w-]+\/$/.test(p.url()) && !p.url().includes('jabiri-2236'),p.url());
+await p.click('#next');await p.waitForTimeout(600);t('next lesson via SPA',/\/lesson\/[\w-]+\/$/.test(p.url()) && !p.url().includes('aljabri013-314'),p.url());
 // (no YouTube lessons yet: the video player checks come back with the YouTube import)
 // 7b. announcements: home strip links to the page, which offers full-size posters
 await p.goto(B+'/');await p.waitForTimeout(1000);
