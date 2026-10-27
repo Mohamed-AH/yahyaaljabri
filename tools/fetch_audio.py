@@ -9,6 +9,7 @@ r"""Download the lesson audio from Telegram, shrink it, and host it in our own C
     python tools/fetch_audio.py --dry-run                 # what is still missing
     python tools/fetch_audio.py --max-gb 2                # a batch: stop after ~2 GB downloaded
     python tools/fetch_audio.py --max-gb 5 --commit-every 25   # also commit + push site/data/media.json as it goes
+    python tools/fetch_audio.py --redo https://t.me/jabiri/755 --file ~/Downloads/right.m4a   # replace one lesson's audio with a file you have
     python tools/fetch_audio.py --export ~/Downloads/Telegram\ Desktop/ChatExport_jabiri   # use files already exported by Telegram Desktop
 
 For each lesson in site/data/library.json that has no audio of ours yet, newest first:
@@ -120,6 +121,17 @@ class ExportSource:
         return os.path.getsize(dst)
 
 
+class FileSource:
+    """One audio file you already have (e.g. the right recording sent by the team), for the single lesson given with --redo."""
+    def __init__(self, path):
+        self.path = Path(path).expanduser()
+        if not self.path.is_file(): sys.exit(f"--file: {self.path} not found")
+
+    def fetch(self, channel, msg_id, dst):
+        shutil.copyfile(self.path, dst)
+        return os.path.getsize(dst)
+
+
 CHANNEL_IDS = {"jabiri": "1003885025", "jabrih": "1241666669", "aljabri013": "1106476361"}   # @name -> the numeric id Telegram Desktop writes in result.json
 
 
@@ -198,6 +210,7 @@ def main(argv=None, source=None, s3=None):
     ap.add_argument("--commit-every", type=int, default=0, help="git commit + push media.json every N lessons")
     ap.add_argument("--keep-dir", help="also keep the converted files here (a local backup)")
     ap.add_argument("--redo", nargs="*", default=[], help="convert and upload these lessons again (their t.me links), replacing our copy")
+    ap.add_argument("--file", help="with one --redo link: use this audio file instead of the Telegram post's file")
     ap.add_argument("--relink", action="store_true", help="only rewrite the links in media.json to the current MEDIA_BASE (after moving the bucket to a custom domain); nothing is downloaded or uploaded")
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args(argv)
@@ -219,7 +232,8 @@ def main(argv=None, source=None, s3=None):
     if not todo: return 0
     if not shutil.which("ffmpeg"): sys.exit("ffmpeg is not installed (https://ffmpeg.org/download.html)")
     s3 = s3 or r2_client()
-    source = source or (ExportSource(a.export) if a.export else TelegramSource(a.pause))
+    if a.file and len(todo) != 1: sys.exit("--file needs exactly one lesson: --redo <its t.me link> --file <audio file>")
+    source = source or (FileSource(a.file) if a.file else ExportSource(a.export) if a.export else TelegramSource(a.pause))
     bucket, base = os.environ.get("R2_BUCKET", ""), os.environ.get("MEDIA_BASE", "").rstrip("/")
 
     done, got, failed, since_commit = 0, 0, [], 0
@@ -244,7 +258,8 @@ def main(argv=None, source=None, s3=None):
                     Path(a.keep_dir).mkdir(parents=True, exist_ok=True); shutil.copyfile(out, Path(a.keep_dir) / f"{l['id']}.m4a")
                 old = manifest.get(l["tg"], {}).get("key")
                 manifest[l["tg"]] = {"url": f"{base}/{key}", "key": key, "sha256": sha, "size": size, "duration": secs, "src_size": raw.stat().st_size}
-                if old and old != key: s3.delete_object(Bucket=bucket, Key=old)   # --redo: drop the earlier copy
+                if old and old != key and not any(m.get("key") == old for m in manifest.values()):
+                    s3.delete_object(Bucket=bucket, Key=old)   # --redo: drop the earlier copy, unless another lesson still uses it
                 save(manifest); done += 1; since_commit += 1
                 print(f"    done: {raw.stat().st_size / 1e6:.1f} -> {size / 1e6:.1f} MB ({kbps} kbps), {secs // 60} min", file=sys.stderr, flush=True)
                 if a.commit_every and since_commit >= a.commit_every: git_publish(since_commit); since_commit = 0
