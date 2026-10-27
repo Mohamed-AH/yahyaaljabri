@@ -94,6 +94,7 @@ SERIES = [
     ('daa-dawa',    'قراءة الداء والدواء لابن القيم', 'aqeedah', r'الداء\s*والدواء'),
     ('miftah',      'مفتاح دار السعادة لابن القيم',       'aqeedah', r'مفتاح\s*دار\s*السعادة'),   # 2026-10-27: new lessons from the 1448 schedule
     ('hadi',        'حادي الأرواح لابن القيم',          'aqeedah', r'حادي\s*الأرواح'),     # 2026-10-27: new lessons from the 1448 schedule
+    ('sahaba-khutba', 'خطبة الدفاع عن الصحابة',      'khutab',  r'خطبة\s*الدفاع\s*عن\s*الصحابة'),   # 2026-10-27 owner: the nine short clips of ٢١ ربيع الآخر ١٤٤٨ (set by override)
     ('tahawiyya',   'شرح العقيدة الطحاوية',           'aqeedah', r'الطحاوي'),
     ('wasitiyya',   'شرح العقيدة الواسطية',           'aqeedah', r'الواسطي'),
     # مجالس رمضان and the سيرة stay whole and separate

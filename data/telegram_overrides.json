@@ -648,11 +648,56 @@
   "note": "moshif 2026-10-27: Telegram says 1 hour but the recording is 31 minutes; keep"
  },
  "jabiri-4626": {
-  "series": "khutab",
-  "note": "2026-10-27 sync: one of the nine خطبة clips about the Sahaba posted together"
+  "series": "sahaba-khutba",
+  "note": "moshif 2026-10-27: clips of «خطبة الدفاع عن الصحابة», own series"
  },
  "jabiri-4764": {
+  "publish": true,
+  "note": "moshif 2026-10-27: it is Sheikh Yahya; «الشيخ أحمد» in the caption was a mistake",
+  "title": "خطر جماعة الحوثي"
+ },
+ "jabiri-4620": {
+  "series": "sahaba-khutba",
+  "note": "moshif 2026-10-27: clips of «خطبة الدفاع عن الصحابة», own series"
+ },
+ "jabiri-4621": {
+  "series": "sahaba-khutba",
+  "note": "moshif 2026-10-27: clips of «خطبة الدفاع عن الصحابة», own series"
+ },
+ "jabiri-4622": {
+  "series": "sahaba-khutba",
+  "note": "moshif 2026-10-27: clips of «خطبة الدفاع عن الصحابة», own series"
+ },
+ "jabiri-4623": {
+  "series": "sahaba-khutba",
+  "note": "moshif 2026-10-27: clips of «خطبة الدفاع عن الصحابة», own series"
+ },
+ "jabiri-4624": {
+  "series": "sahaba-khutba",
+  "note": "moshif 2026-10-27: clips of «خطبة الدفاع عن الصحابة», own series"
+ },
+ "jabiri-4625": {
+  "series": "sahaba-khutba",
+  "note": "moshif 2026-10-27: clips of «خطبة الدفاع عن الصحابة», own series"
+ },
+ "jabiri-4627": {
+  "series": "sahaba-khutba",
+  "note": "moshif 2026-10-27: clips of «خطبة الدفاع عن الصحابة», own series"
+ },
+ "jabiri-4628": {
+  "series": "sahaba-khutba",
+  "note": "moshif 2026-10-27: clips of «خطبة الدفاع عن الصحابة», own series"
+ },
+ "jabiri-4655": {
   "publish": false,
-  "note": "2026-10-27 sync: title says «للشيخ أحمد الجابري»; held until the owner confirms the speaker"
+  "note": "moshif 2026-10-27: record.ogg of 1h42 is the first مفتاح دار السعادة lesson (same length as jabiri-4664); «خطيب الجمعة» was the poster before it"
+ },
+ "jabiri-4667": {
+  "title": "خطبة الجمعة: بشائر للذين يجاهدون الحوثيين والحث على حملة التبرع بالدم",
+  "note": "2026-10-27 sync: title from the caption"
+ },
+ "jabiri-4721": {
+  "title": "خطبة الجمعة: التحذير من عقيدة الحوثيين",
+  "note": "2026-10-27 sync: title from the caption"
  }
 }
