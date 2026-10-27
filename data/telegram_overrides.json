@@ -639,5 +639,12 @@
  "aljabri013-659": {
   "series": "fatawa",
   "note": "moshif 2026-10-13: سؤال وجواب, not صحيح البخاري"
+ },
+ "jabiri-2042": {
+  "publish": false,
+  "note": "moshif 2026-10-27: remove, the Telegram file is only 2 seconds"
+ },
+ "jabrih-1805": {
+  "note": "moshif 2026-10-27: Telegram says 1 hour but the recording is 31 minutes; keep"
  }
 }
