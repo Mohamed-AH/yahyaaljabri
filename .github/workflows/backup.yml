@@ -1,0 +1,73 @@
+name: Backup
+
+# Every week: copy the audio bucket (R2) to a Backblaze B2 bucket outside Cloudflare, check the copy against site/data/media.json
+# (every file present with the right size, 20 random files by sha256), and store a git bundle of this repo next to it.
+# It only ever ADDS to B2 (`rclone copy`, never `sync`), and the B2 bucket keeps old versions for 90 days, so a deletion in R2 or a
+# bad run can't wipe the backup. A failed check fails the run and GitHub emails the owner. Setup and restore: docs/backup.md.
+on:
+  schedule:
+    - cron: "13 1 * * SUN"         # Sunday 04:13 Riyadh; the Worker's timer also starts it (JOBS in worker/index.js)
+  workflow_dispatch:             # "Run workflow" button for a manual run
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300         # the first run copies everything (~40 GB); later runs copy only new files
+    env:
+      B2_BUCKET: ${{ vars.B2_BUCKET }}
+      R2_BUCKET: yahyaaljabri-media
+      # rclone remotes from environment variables: r2 = the live bucket (read-only token), b2 = the backup (bucket-limited key)
+      RCLONE_CONFIG_R2_TYPE: s3
+      RCLONE_CONFIG_R2_PROVIDER: Cloudflare
+      RCLONE_CONFIG_R2_ACCESS_KEY_ID: ${{ secrets.R2_BACKUP_ACCESS_KEY_ID }}
+      RCLONE_CONFIG_R2_SECRET_ACCESS_KEY: ${{ secrets.R2_BACKUP_SECRET_ACCESS_KEY }}
+      RCLONE_CONFIG_R2_ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+      RCLONE_CONFIG_R2_NO_CHECK_BUCKET: "true"
+      RCLONE_CONFIG_B2_TYPE: b2
+      RCLONE_CONFIG_B2_ACCOUNT: ${{ secrets.B2_KEY_ID }}
+      RCLONE_CONFIG_B2_KEY: ${{ secrets.B2_APP_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0         # whole history, for the git bundle
+
+      - name: Require the settings
+        run: |
+          miss=""
+          for v in B2_BUCKET RCLONE_CONFIG_R2_ACCESS_KEY_ID RCLONE_CONFIG_R2_SECRET_ACCESS_KEY RCLONE_CONFIG_B2_ACCOUNT RCLONE_CONFIG_B2_KEY; do
+            [ -n "${!v}" ] || miss="$miss $v"
+          done
+          case "$RCLONE_CONFIG_R2_ENDPOINT" in https://.r2.*) miss="$miss R2_ACCOUNT_ID";; esac
+          if [ -n "$miss" ]; then echo "::error::Missing settings (see docs/backup.md):$miss"; exit 1; fi
+
+      - name: Install rclone
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq rclone && rclone version | head -1
+
+      - name: Copy new audio to B2
+        run: |
+          # File names are content hashes (audio/<sha16>.m4a), so the same name means the same file: compare sizes only.
+          rclone copy "r2:$R2_BUCKET" "b2:$B2_BUCKET/media" --size-only --fast-list --transfers 8 --checkers 16 --stats 2m --stats-one-line
+
+      - name: Copy the repo (git bundle) to B2
+        run: |
+          git bundle create "$RUNNER_TEMP/yahyaaljabri.bundle" --all
+          git bundle verify -q "$RUNNER_TEMP/yahyaaljabri.bundle"
+          rclone copyto "$RUNNER_TEMP/yahyaaljabri.bundle" "b2:$B2_BUCKET/git/yahyaaljabri.bundle"   # B2 keeps the earlier versions
+
+      - name: Check the backup against media.json
+        if: success() || failure()
+        run: python3 tools/verify_backup.py --remote "b2:$B2_BUCKET/media" --sample 20 | tee -a "$GITHUB_STEP_SUMMARY"
+        shell: bash
+
+      - name: Check the live bucket against media.json
+        if: success() || failure()
+        run: python3 tools/verify_backup.py --remote "r2:$R2_BUCKET" | tee -a "$GITHUB_STEP_SUMMARY"
+        shell: bash
