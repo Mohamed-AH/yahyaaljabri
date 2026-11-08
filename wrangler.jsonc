@@ -17,9 +17,9 @@
     "run_worker_first": ["/dl/*", "/health"]
   },
   "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "yahyaaljabri-media" }],
-  // Timer: starts the Announcements bot (hourly) and the YouTube sync (05:47 Riyadh) on GitHub, which drops its own schedules.
+  // Timer: starts the Announcements bot (hourly), the YouTube sync (05:47 Riyadh) and the weekly backup (Sunday 04:13 Riyadh) on GitHub, which drops its own schedules.
   // Keep the times in step with JOBS in worker/index.js. Needs the secret GH_TOKEN (docs/announcements.md).
-  "triggers": { "crons": ["17 * * * *", "47 2 * * *"] },
+  "triggers": { "crons": ["17 * * * *", "47 2 * * *", "13 1 * * SUN"] },
   // Branch previews (Workers Builds runs `npx wrangler preview` for non-production branches); empty = same settings as production.
   "previews": {}
 }

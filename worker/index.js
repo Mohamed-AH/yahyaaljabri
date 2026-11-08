@@ -8,10 +8,10 @@ export const fileName = n => (String(n || "").replace(BAD, " ").replace(/\s+/g, 
 export const disposition = name => `attachment; filename="lesson.m4a"; filename*=UTF-8''` +
   encodeURIComponent(name).replace(/['()]/g, c => "%" + c.charCodeAt(0).toString(16).toUpperCase());
 
-/* Timer (Cloudflare cron triggers in wrangler.jsonc, UTC): GitHub drops most scheduled Actions runs, so the Worker starts them
+/* Timer (Cloudflare cron triggers in wrangler.jsonc, UTC; the weekly backup too): GitHub drops most scheduled Actions runs, so the Worker starts them
    through the API instead. Needs the secret GH_TOKEN (fine-grained token, this repo only, Actions: read and write). */
 export const REPO = "Mohamed-AH/yahyaaljabri";
-export const JOBS = { "17 * * * *": "telegram-bot.yml", "47 2 * * *": "youtube-sync.yml" };
+export const JOBS = { "17 * * * *": "telegram-bot.yml", "47 2 * * *": "youtube-sync.yml", "13 1 * * SUN": "backup.yml" };
 export async function dispatch(workflow, env, fetcher = fetch) {
   if (!env.GH_TOKEN) { console.log("GH_TOKEN is not set: not starting " + workflow); return 0; }
   const r = await fetcher(`https://api.github.com/repos/${REPO}/actions/workflows/${workflow}/dispatches`, { method: "POST",
