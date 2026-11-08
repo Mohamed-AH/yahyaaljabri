@@ -295,7 +295,7 @@ body.has-dock{padding-bottom:80px}
 .about-teaser h2{font-size:21px;margin-bottom:4px}
 .about-teaser p{color:var(--mute);margin-bottom:12px}
 .about{max-width:820px;margin:0 auto;padding-top:26px}
-.about .crumb{color:var(--mute)}.about .crumb a{color:var(--link)}
+.about .crumb{color:var(--mute)}.about .crumb a{color:var(--link);text-decoration:underline;text-underline-offset:3px}
 .about-h{display:flex;gap:26px;align-items:center;flex-wrap:wrap;margin:10px 0}
 .about-photo{width:180px;height:180px;object-fit:cover;border-radius:20px}
 .about-h .page-h .dua{color:var(--link);font-size:.55em;font-weight:500}
@@ -308,6 +308,12 @@ body.has-dock{padding-bottom:80px}
 .about-extra{margin-top:50px;padding-top:24px;border-top:1px solid var(--line)}
 .about-extra h2{font-size:20px;color:var(--mute)}
 .about-intro{margin:0 0 14px;font-size:16px!important;color:var(--mute)}
+.about-basmala{margin:0 0 6px;color:var(--link);font-size:20px}
+.about-h>div{flex:1 1 300px}
+.about-pre p{font-size:18px;line-height:2;margin:0 0 10px}
+.about-sec h3{font-size:18px;margin:22px 0 6px;color:var(--ink)}
+.about-sec li .note{color:var(--mute);font-size:.85em}
+@media (min-width:760px){.about-cols ul{columns:2;column-gap:40px}.about-cols li{break-inside:avoid}}
 .linkcard{display:flex;align-items:center;gap:14px;padding:14px 18px;margin:0 0 12px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
 .linkcard:hover{border-color:var(--focus)}
 .lc-ic,.lc-go{flex:none;line-height:0;color:var(--link)}
