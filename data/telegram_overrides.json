@@ -702,26 +702,32 @@
  },
  "jabiri-4838": {
   "series": "rasail",
-  "note": "2026-11-09 catch-up: a creed text of the salaf read like the others in قراءات في رسائل الاعتقاد (default, ask owner)"
+  "note": "moshif 2026-11-09: ok in قراءات في رسائل الاعتقاد"
  },
  "jabiri-4839": {
   "series": "rasail",
-  "note": "2026-11-09 catch-up: a creed text of the salaf read like the others in قراءات في رسائل الاعتقاد (default, ask owner)"
+  "note": "moshif 2026-11-09: ok in قراءات في رسائل الاعتقاد"
  },
  "jabiri-4847": {
   "series": "rasail",
-  "note": "2026-11-09 catch-up: a creed text of the salaf read like the others in قراءات في رسائل الاعتقاد (default, ask owner)"
+  "note": "moshif 2026-11-09: ok in قراءات في رسائل الاعتقاد"
  },
  "jabiri-4848": {
   "series": "rasail",
-  "note": "2026-11-09 catch-up: a creed text of the salaf read like the others in قراءات في رسائل الاعتقاد (default, ask owner)"
+  "note": "moshif 2026-11-09: ok in قراءات في رسائل الاعتقاد"
  },
  "jabiri-4837": {
   "series": "lectures",
   "note": "2026-11-09 catch-up: a lecture; «التوحيد» in بلاد التوحيد pulled it into كتاب التوحيد"
  },
  "jabiri-4825": {
+  "title": "درس الداء والدواء",
+  "series": "daa-dawa",
+  "publish": true,
+  "note": "moshif 2026-11-09: it is درس الداء والدواء (the «الشيخ أحمد» caption in jabrih was wrong)"
+ },
+ "jabiri-4828": {
   "publish": false,
-  "note": "2026-11-09 catch-up: held: forwarded from the Sheikh's account but the jabrih caption (6137) names «الشيخ أحمد الجابري», and the jabiri reply says «درس الداء والدواء»; ask owner"
+  "note": "moshif 2026-11-09: untitled 81 min; hidden until the team says what it is"
  }
 }
