@@ -360,7 +360,7 @@ function documentsPage() {
   });
 }
 
-/* Bio text blocks: a string is a paragraph, an array a bullet list, {ol:[…]} a numbered list, {links:[{label,url}]} a list of links.
+/* Bio text blocks: a string is a paragraph, an array a bullet list, {ol:[…]} a numbered list, {h:"…"} a sub-heading, {links:[{label,url}]} a list of links.
    Older bio.json files with `paragraphs` + `items` still work. Links: https URLs, or a path on this site (e.g. a PDF under /files/). */
 const aboutLink = x => {
   const own = typeof x.url === "string" && /^\/[\w./-]+$/.test(x.url);
@@ -370,7 +370,9 @@ const aboutLink = x => {
 };
 const aboutBlocks = sec => {
   const blocks = Array.isArray(sec.blocks) ? sec.blocks : [...(sec.paragraphs || []), ...(sec.items && sec.items.length ? [sec.items] : [])];
-  return blocks.map(b => Array.isArray(b) ? `<ul>${b.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`
+  const li = x => `<li>${esc(x).replace(/ \(([^()]+)\)$/, ' <span class="note">($1)</span>')}</li>`;   // a trailing «(مرتين)» is drawn quieter
+  return blocks.map(b => Array.isArray(b) ? `<ul>${b.map(li).join("")}</ul>`
+    : b && typeof b.h === "string" ? `<h3>${esc(b.h)}</h3>`
     : b && Array.isArray(b.ol) ? `<ol>${b.ol.map(x => `<li>${esc(x)}</li>`).join("")}</ol>`
     : b && Array.isArray(b.links) ? `<ul class="links">${b.links.map(x => `<li>${aboutLink(x)}</li>`).join("")}</ul>`
     : `<p>${esc(b)}</p>`).join("");
@@ -380,9 +382,11 @@ function aboutPage() {
   const b = state.bio; if (!b) return null;
   const c = crumbs([{ t: "عن الشيخ" }]);
   const photo = b.photo && /^(\/[\w./-]+|https:\/\/.+)$/.test(b.photo) ? b.photo : "";
+  const pre = Array.isArray(b.preface) ? b.preface.filter(x => typeof x === "string") : [];   // opening paragraphs before the first section
   const html = `<div class="about">${c.html}
-    <header class="about-h">${photo ? `<img class="about-photo" src="${esc(photo)}" alt="${esc(NAME)}" width="220" height="220">` : ""}<div><h1 class="page-h">${esc(b.title || NAME)}<span class="dua"> حفظه الله</span></h1>${b.lede || b.summary ? `<p class="lede">${esc(b.lede || b.summary)}</p>` : ""}</div></header>
-    ${(b.sections || []).map(sec => `<section class="about-sec${sec.extra ? " about-extra" : ""}"><h2>${esc(sec.title || "")}</h2>${sec.intro ? `<p class="about-intro">${esc(sec.intro)}</p>` : ""}${aboutBlocks(sec)}</section>`).join("")}
+    <header class="about-h">${photo ? `<img class="about-photo" src="${esc(photo)}" alt="${esc(NAME)}" width="220" height="220">` : ""}<div>${b.basmala ? `<p class="about-basmala">${esc(b.basmala)}</p>` : ""}<h1 class="page-h">${esc(b.title || NAME)}<span class="dua"> حفظه الله</span></h1>${!pre.length && (b.lede || b.summary) ? `<p class="lede">${esc(b.lede || b.summary)}</p>` : ""}</div></header>
+    ${pre.length ? `<div class="about-pre">${pre.map(x => `<p>${esc(x)}</p>`).join("")}</div>` : ""}
+    ${(b.sections || []).map(sec => `<section class="about-sec${sec.extra ? " about-extra" : ""}${sec.cols ? " about-cols" : ""}"><h2>${esc(sec.title || "")}</h2>${sec.intro ? `<p class="about-intro">${esc(sec.intro)}</p>` : ""}${aboutBlocks(sec)}</section>`).join("")}
     ${b.sources && b.sources.length ? `<section class="about-sec"><h2>المصادر</h2><ul>${b.sources.map(x => `<li>${x.url ? `${aboutLink(x)}` : esc(x.label || "")}</li>`).join("")}</ul></section>` : ""}</div>`;
   return mkPage({
     nav: "about", path: "/about/", html, ogType: "profile",
