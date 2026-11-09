@@ -14,7 +14,13 @@ const readJSON = (f, optional = false) => { try { return JSON.parse(fs.readFileS
 const t0 = Date.now();
 /* MEDIA_JSON=<file>: build with another media manifest (tests/player_check.mjs uses tests/fixtures/media.json) */
 const MEDIA = process.env.MEDIA_JSON ? JSON.parse(fs.readFileSync(path.resolve(process.env.MEDIA_JSON), "utf8")) : readJSON("data/media.json", true);
-const LIB = mergeLibraries(readJSON("data/library.json", true), readJSON("data/makkah.json", true));   // library.json + lessons imported from makkahscholars.org
+const ALL = mergeLibraries(readJSON("data/library.json", true), readJSON("data/makkah.json", true));   // library.json + lessons imported from makkahscholars.org
+/* Only lessons whose audio we host are published (owner 2026-11-09: no «استمع على تيليجرام» pages): a new lesson appears
+   once tools/fetch_audio.py has uploaded it, and a series with none hosted yet waits too. SHOW_UNHOSTED=1, a build
+   without data/media.json, and MEDIA_JSON test builds keep every lesson. */
+const hosted = MEDIA && !process.env.MEDIA_JSON && !process.env.SHOW_UNHOSTED ? new Set(applyMedia(ALL, MEDIA).lessons.filter(l => l.src).map(l => l.id)) : null;
+const LIB = hosted ? (ls => ({ ...ALL, lessons: ls, series: (ALL.series || []).filter(s => ls.some(l => l.series === s.id)) }))((ALL.lessons || []).filter(l => hosted.has(l.id))) : ALL;
+if (hosted) console.log(`${(ALL.lessons || []).length - LIB.lessons.length} lessons wait for hosted audio (SHOW_UNHOSTED=1 shows them)`);
 init(readJSON("catalogue.json"), LIB, readJSON("data/bio.json", true), MEDIA);
 const DB = state.DB;
 setAnnouncements(readJSON("data/announcements.json", true));   // posters whose end date has passed are left out
