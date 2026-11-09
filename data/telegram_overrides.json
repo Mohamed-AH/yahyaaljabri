@@ -699,5 +699,29 @@
  "jabiri-4721": {
   "title": "خطبة الجمعة: التحذير من عقيدة الحوثيين",
   "note": "2026-10-27 sync: title from the caption"
+ },
+ "jabiri-4838": {
+  "series": "rasail",
+  "note": "2026-11-09 catch-up: a creed text of the salaf read like the others in قراءات في رسائل الاعتقاد (default, ask owner)"
+ },
+ "jabiri-4839": {
+  "series": "rasail",
+  "note": "2026-11-09 catch-up: a creed text of the salaf read like the others in قراءات في رسائل الاعتقاد (default, ask owner)"
+ },
+ "jabiri-4847": {
+  "series": "rasail",
+  "note": "2026-11-09 catch-up: a creed text of the salaf read like the others in قراءات في رسائل الاعتقاد (default, ask owner)"
+ },
+ "jabiri-4848": {
+  "series": "rasail",
+  "note": "2026-11-09 catch-up: a creed text of the salaf read like the others in قراءات في رسائل الاعتقاد (default, ask owner)"
+ },
+ "jabiri-4837": {
+  "series": "lectures",
+  "note": "2026-11-09 catch-up: a lecture; «التوحيد» in بلاد التوحيد pulled it into كتاب التوحيد"
+ },
+ "jabiri-4825": {
+  "publish": false,
+  "note": "2026-11-09 catch-up: held: forwarded from the Sheikh's account but the jabrih caption (6137) names «الشيخ أحمد الجابري», and the jabiri reply says «درس الداء والدواء»; ask owner"
  }
 }
