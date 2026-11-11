@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 // End-to-end smoke test of the pre-rendered site (no-JS content, hydration, SPA navigation, legacy #/ links, search, players, 404, drawer).
 // Needs:  npm i -D playwright     Usage:  node scripts/build.mjs && (cd dist && python3 -m http.server 8000) &  node tests/e2e.mjs http://localhost:8000
 import { chromium } from "playwright";
@@ -47,10 +48,13 @@ await p.click('#next');await p.waitForTimeout(600);t('next lesson via SPA',/\/le
 // (no YouTube lessons yet: the video player checks come back with the YouTube import)
 // 7b. announcements: home strip links to the page, which offers full-size posters
 await p.goto(B+'/');await p.waitForTimeout(1000);
+const annCount=JSON.parse(fs.readFileSync(new URL('../dist/data/announcements.json',import.meta.url),'utf8')).filter(a=>!a.until||a.until>=new Date(Date.now()+3*3600e3).toISOString().slice(0,10)).length;
+if(annCount){   // posters come and go (they are hidden after their date); with none current there is nothing to check
 t('home shows announcement posters',(await p.locator('.posters.strip .poster').count())>0);
 await p.click('.posters.strip .poster-img >> nth=0');await p.waitForTimeout(700);
 t('poster -> /announcements/',p.url().startsWith(B+'/announcements/'),p.url());
 t('full-size poster + download',(await p.locator('.posters .poster a[download]').count())>0 && (await p.locator('.posters .poster img').first().getAttribute('src')).startsWith('/ann/'));
+}else console.log('  (no current announcement posters: poster checks skipped)');
 // 8. 404
 const r=await p.goto(B+'/lesson/does-not-exist/');t('unknown lesson -> 404 status',r.status()===404,r.status());
 await p.goto(B+'/lesson/%E0%A4%A/');await p.waitForTimeout(600);t('malformed URL handled',(await p.locator('h1').count())===1);

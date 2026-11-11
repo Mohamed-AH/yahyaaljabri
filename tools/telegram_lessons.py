@@ -1,12 +1,14 @@
 """Merge the two Telegram exports into one de-duplicated lesson list.
 
-Reads  $TELEGRAM_EXPORTS/{jabiri,jabrih,aljabri013}/result.json (Telegram Desktop JSON exports; a missing one is skipped)
-Writes $TELEGRAM_EXPORTS/lessons.json (input of tools/import_telegram.py)
+Reads  $TELEGRAM_EXPORTS/<channel>.jsonl (default data/telegram/: one post per line, kept up to date by tools/tg_sync.py;
+       the first line describes the channel) or a Telegram Desktop export $TELEGRAM_EXPORTS/<channel>/result.json, for
+       jabiri, jabrih and aljabri013 (a missing one is skipped)
+Writes $TELEGRAM_EXPORTS/lessons.json (input of tools/import_telegram.py; git-ignored)
 """
 import json, os, re, collections, unicodedata
 from datetime import datetime
 
-ROOT = os.environ.get('TELEGRAM_EXPORTS', 'telegram')   # folder with jabiri/result.json and jabrih/result.json
+ROOT = os.environ.get('TELEGRAM_EXPORTS') or os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'telegram')
 CHANNELS = ['jabiri', 'jabrih', 'aljabri013']   # jabiri (official) wins when a file is in both
 QA_CHANNEL = 'aljabri013'                 # «أسئلة وأجوبة»: a question post, then the Sheikh's answer (audio, or a link to it)
 SHEIKH_CHANNELS = {'قناة فضيلة الشيخ يحيى الجابري الرسمية',
@@ -339,11 +341,23 @@ def link_post(x, ch):
     return y
 
 
+def load_messages(ch, root=None):
+    """The channel's posts, oldest first: from <root>/<ch>.jsonl (header line first) or a Telegram Desktop <root>/<ch>/result.json."""
+    root = root or ROOT
+    if os.path.exists(f'{root}/{ch}/result.json'):
+        return json.load(open(f'{root}/{ch}/result.json', encoding='utf-8'))['messages']
+    if os.path.exists(f'{root}/{ch}.jsonl'):
+        with open(f'{root}/{ch}.jsonl', encoding='utf-8') as f:
+            return [m for m in map(json.loads, f) if 'channel' not in m]
+    return None
+
+
 def main():
     posts = []
-    channels = [ch for ch in CHANNELS if os.path.exists(f'{ROOT}/{ch}/result.json')]
+    loaded = {ch: load_messages(ch) for ch in CHANNELS}
+    channels = [ch for ch in CHANNELS if loaded[ch] is not None]
     for ch in channels:
-        msgs = json.load(open(f'{ROOT}/{ch}/result.json'))['messages']
+        msgs = loaded[ch]
         prev_text = None
         for x in msgs:
             if x.get('type') != 'message':
@@ -369,7 +383,7 @@ def main():
         # an audio with no description before it may be described by the post right after it
     by_id = {(p['_ch'], p['id']): p for p in posts}
     for ch in channels:
-        msgs = json.load(open(f'{ROOT}/{ch}/result.json'))['messages']
+        msgs = loaded[ch]
         last_audio = None
         for x in msgs:
             if x.get('type') != 'message':

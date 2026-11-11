@@ -25,10 +25,12 @@ Your Telegram login is kept in a local session file (.telegram.session, git-igno
 import argparse, hashlib, json, os, re, shutil, subprocess, sys, tempfile, time
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 ROOT = Path(__file__).resolve().parent.parent
 LIBRARY = ROOT / "site" / "data" / "library.json"
 MANIFEST = ROOT / "site" / "data" / "media.json"
-SESSION = ROOT / ".telegram"          # Telethon adds ".session"
+NO_AUDIO = ROOT / "data" / "no_audio.json"   # {"<t.me link>": "why"}: lessons whose file cannot come from Telegram (skipped)
 POST = re.compile(r"^https://t\.me/([A-Za-z0-9_]{4,32})/(\d+)$")
 
 
@@ -52,7 +54,9 @@ def save(manifest):
 
 
 def todo_list(lib, manifest, series=None):
-    out = [l for l in lib["lessons"] if l.get("kind") == "audio" and not l.get("src") and POST.match(l.get("tg", "")) and l["tg"] not in manifest]
+    skip = json.loads(NO_AUDIO.read_text(encoding="utf-8")) if NO_AUDIO.exists() else {}
+    out = [l for l in lib["lessons"] if l.get("kind") == "audio" and not l.get("src") and POST.match(l.get("tg", "")) and l["tg"] not in manifest
+           and l["tg"] not in skip]
     if series: out = [l for l in out if l["series"] in series]
     return sorted(out, key=lambda l: l.get("date", ""), reverse=True)     # newest first: what visitors open most
 
@@ -136,14 +140,12 @@ CHANNEL_IDS = {"jabiri": "1003885025", "jabrih": "1241666669", "aljabri013": "11
 
 
 class TelegramSource:
-    """Your own Telegram account through Telethon. Read-only; pauses between files and obeys Telegram's flood waits."""
+    """Your own Telegram account through Telethon (or the daily job's reading account, TG_SESSION). Read-only; pauses between
+    files. FloodWait: waited out locally; the daily job sets TG_FLOOD_MAX so a long one stops the run instead (FloodStop)."""
     def __init__(self, pause):
-        need = [k for k in ("TG_API_ID", "TG_API_HASH") if not os.environ.get(k)]
-        if need: sys.exit("missing " + ", ".join(need) + " (create them once at https://my.telegram.org -> API development tools)")
-        from telethon.sync import TelegramClient
-        self.client = TelegramClient(str(SESSION), int(os.environ["TG_API_ID"]), os.environ["TG_API_HASH"],
-                                     flood_sleep_threshold=24 * 3600)   # always wait out FloodWait instead of failing
-        self.client.start()            # first run: asks for your phone number and the login code Telegram sends you
+        from tg_client import client
+        fm = os.environ.get("TG_FLOOD_MAX")
+        self.client = client(flood_max=int(fm) if fm else None)   # first local run: asks for your phone number and login code
         self.pause, self.last = pause, 0.0
 
     def fetch(self, channel, msg_id, dst):
@@ -265,6 +267,8 @@ def main(argv=None, source=None, s3=None):
                 if a.commit_every and since_commit >= a.commit_every: git_publish(since_commit); since_commit = 0
             except Exception as e:
                 failed.append((l["tg"], f"{type(e).__name__}: {e}")); print(f"  FAILED {l['tg']}: {e}", file=sys.stderr)
+                if type(e).__name__ == "FloodWaitError":
+                    print("  Telegram asked to slow down: stopping here (the next run continues)", file=sys.stderr); break
             finally:
                 for p in (raw, out):
                     if p.exists(): p.unlink()

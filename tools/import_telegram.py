@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from telegram_lessons import SERIES  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-src = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.environ.get('TELEGRAM_EXPORTS', 'telegram'), 'lessons.json')
+src = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.environ.get('TELEGRAM_EXPORTS') or os.path.join(ROOT, 'data', 'telegram'), 'lessons.json')
 lessons = json.load(open(src, encoding='utf-8'))
 ov_path = os.path.join(ROOT, 'data', 'telegram_overrides.json')
 overrides = json.load(open(ov_path, encoding='utf-8')) if os.path.exists(ov_path) else {}

@@ -1,0 +1,118 @@
+name: Telegram sync
+
+# Every morning: read the new posts of the Sheikh's Telegram channels (a reading-only account, TG_SESSION), import them,
+# host their audio in R2, test the site, publish, and send a short summary through the announcements bot.
+# A lesson only appears once its audio is hosted; untitled posts and possible other speakers are held for review.
+# Stops without publishing (and says why in Telegram) if an existing lesson would change, if more than 30 lessons are new
+# at once, if a test fails, or if Telegram asks it to slow down for long. Setup: docs/telegram-sync.md.
+on:
+  schedule:
+    - cron: "50 9 * * *"         # backup only: the Worker's timer starts it daily at 06:35 Riyadh (GitHub drops many scheduled runs)
+  workflow_dispatch:             # "Run workflow" button for a manual run
+
+permissions:
+  contents: write
+
+concurrency:
+  group: telegram-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      TG_API_ID: ${{ secrets.TG_API_ID }}
+      TG_API_HASH: ${{ secrets.TG_API_HASH }}
+      TG_SESSION: ${{ secrets.TG_SESSION }}
+      TG_FLOOD_MAX: "120"                                  # a longer Telegram FloodWait stops the run instead of waiting
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: ${{ vars.R2_BUCKET || 'yahyaaljabri-media' }}
+      MEDIA_BASE: ${{ vars.MEDIA_BASE || 'https://media.yaljabri.com' }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      SYNC_NOTIFY: ${{ vars.SYNC_NOTIFY }}                 # Telegram chat ids (comma-separated) that get the summary
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Require the secrets
+        run: |
+          REASON="$RUNNER_TEMP/reason.txt"; echo "REASON=$REASON" >> "$GITHUB_ENV"   # why a run stopped, for the alert
+          miss=""; for k in TG_API_ID TG_API_HASH TG_SESSION R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY; do [ -n "${!k}" ] || miss="$miss $k"; done
+          if [ -n "$miss" ]; then echo "Telegram sync is not set up yet: missing secrets$miss" | tee "$REASON"; echo "::error::Missing repository secrets:$miss (docs/telegram-sync.md)"; exit 1; fi
+          pip install --quiet -r tools/requirements-mirror.txt cryptg
+
+      - name: Read new posts
+        id: read
+        run: |
+          cp site/data/library.json "$RUNNER_TEMP/library.before.json"
+          set +e; python tools/tg_sync.py --out "$RUNNER_TEMP/sync.json"; rc=$?; set -e
+          if [ $rc -ne 0 ] && [ $rc -ne 3 ]; then echo "Telegram sync could not read the channels (see the run log)" > "$REASON"; exit $rc; fi
+          if git diff --quiet -- data/telegram; then echo "new=0" >> "$GITHUB_OUTPUT"; else echo "new=1" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Import and check
+        if: steps.read.outputs.new == '1'
+        run: |
+          python tools/telegram_lessons.py > /dev/null
+          python tools/import_telegram.py
+          python tools/tg_report.py check "$RUNNER_TEMP/library.before.json" --max-new 30 --reason-file "$REASON"
+
+      - name: Host the audio
+        id: audio
+        run: |
+          if python tools/fetch_audio.py --dry-run 2>&1 | grep -q '^0 lessons'; then echo "No audio to fetch."; exit 0; fi
+          sudo apt-get install -y -qq ffmpeg > /dev/null
+          python tools/fetch_audio.py --max-gb 4 || echo "::warning::Some audio could not be fetched; it is retried on the next run."
+
+      - name: Anything to publish?
+        id: diff
+        run: |
+          if git diff --quiet -- data/telegram site/data/library.json site/data/media.json; then echo "changed=0" >> "$GITHUB_OUTPUT"; echo "Nothing new today."; else echo "changed=1" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Build and test the site
+        if: steps.diff.outputs.changed == '1'
+        run: |
+          echo "Telegram sync stopped, nothing published: the site build or its tests failed (see the run log)" > "$REASON"
+          node scripts/build.mjs
+          npm install --no-save --no-package-lock playwright@1.48.2 > /dev/null
+          npx playwright install --with-deps chromium > /dev/null
+          (python -m http.server 8000 -d dist > /dev/null 2>&1 &)
+          sleep 2
+          node tests/e2e.mjs http://localhost:8000
+          node tests/xss_check.mjs
+          rm -f "$REASON"
+
+      - name: Publish
+        if: steps.diff.outputs.changed == '1'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/telegram/*.jsonl site/data/library.json site/data/media.json
+          git commit -q -m "Telegram sync $(date -u +%F)"
+          for i in 1 2 3; do
+            git pull -q --rebase origin main && git push -q origin HEAD:main && exit 0
+            sleep $((i * 5))
+          done
+          echo "Telegram sync could not push to main" > "$REASON"; exit 1
+
+      - name: Summary
+        if: steps.diff.outputs.changed == '1'
+        run: |
+          python tools/tg_report.py summary "$RUNNER_TEMP/library.before.json" "$RUNNER_TEMP/sync.json" --out "$RUNNER_TEMP/summary.txt" | tee -a "$GITHUB_STEP_SUMMARY"
+          node tools/notify.mjs "$RUNNER_TEMP/summary.txt"
+
+      - name: Tell the owner it stopped
+        if: failure()
+        run: |
+          RUN="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          { if [ -s "$REASON" ]; then cat "$REASON"; else echo "Telegram sync failed (nothing published)."; fi; echo; echo "$RUN"; } > "$RUNNER_TEMP/alert.txt"
+          node tools/notify.mjs "$RUNNER_TEMP/alert.txt"

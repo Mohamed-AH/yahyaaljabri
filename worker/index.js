@@ -11,7 +11,7 @@ export const disposition = name => `attachment; filename="lesson.m4a"; filename*
 /* Timer (Cloudflare cron triggers in wrangler.jsonc, UTC): GitHub drops most scheduled Actions runs, so the Worker starts them
    through the API instead. Needs the secret GH_TOKEN (fine-grained token, this repo only, Actions: read and write). */
 export const REPO = "Mohamed-AH/yahyaaljabri";
-export const JOBS = { "17 * * * *": "telegram-bot.yml", "47 2 * * *": "youtube-sync.yml" };
+export const JOBS = { "17 * * * *": "telegram-bot.yml", "47 2 * * *": "youtube-sync.yml", "35 3 * * *": "telegram-sync.yml" };
 export async function dispatch(workflow, env, fetcher = fetch) {
   if (!env.GH_TOKEN) { console.log("GH_TOKEN is not set: not starting " + workflow); return 0; }
   const r = await fetcher(`https://api.github.com/repos/${REPO}/actions/workflows/${workflow}/dispatches`, { method: "POST",

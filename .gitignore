@@ -44,9 +44,10 @@ tools/makkah_report.txt
 tools/makkah_scan.json
 tools/channel_report.txt
 tools/channel_hits.json
-telegram/
+/telegram/
 node_modules
 # Telegram login of tools/fetch_audio.py (never commit)
 *.session
 *.session-journal
 .bot-ack
+data/telegram/lessons.json
