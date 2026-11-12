@@ -17,6 +17,8 @@
     "binding": "ASSETS",
     "run_worker_first": ["/dl/*", "/health", "/bot"]
   },
+  // Workers Logs (free plan: 200,000 log lines a day, kept 3 days): the bot's and the timer's errors show under Observability.
+  "observability": { "enabled": true },
   "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "yahyaaljabri-media" }],
   // Timer: starts the Announcements bot (hourly) and the YouTube sync (05:47 Riyadh) on GitHub, which drops its own schedules.
   // Keep the times in step with JOBS in worker/index.js. Needs the secret GH_TOKEN (docs/announcements.md).
