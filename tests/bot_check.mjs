@@ -61,6 +61,7 @@ server.on("request", (req, res) => {
   let body = ""; req.on("data", c => body += c); req.on("end", () => {
     const p = body ? JSON.parse(body) : {}, m = req.url.split("/").pop(), ok = r => res.end(JSON.stringify({ ok: true, result: r }));
     if (req.url.startsWith("/file/")) return res.end(img = PNG(+req.url.split("/").pop().replace(/\D/g, "")));
+    if (m === "getWebhookInfo") return ok({ url: "" });
     if (m === "getUpdates") return ok(p.offset ? [] : updates);
     if (m === "getFile") return ok({ file_id: p.file_id, file_size: 33, file_path: "photos/" + p.file_id + ".png" });
     if (m === "sendMessage") { sent.push(p); return ok({}); }
@@ -79,5 +80,25 @@ L = list();
 t("new schedule replaces the old one", L.length === 2 && L[0].title === "الجدول الجديد ١٤٤٨" && L[0].pin && L[1].title === "درس الجمعة", JSON.stringify(L));
 t("admin told the old schedule went", sent.some(s => s.text.includes("حُذف الجدول السابق")));
 t("old schedule image deleted", fs.readdirSync(path.join(dir, "site", "ann")).filter(f => f.endsWith(".png")).length === 2);
+// webhook mode: the Worker handles messages; this job only fetches drafts' pictures and removes unused ones
+let hooked = true, polled = false;
+server.removeAllListeners("request");
+server.on("request", (req, res) => {
+  let body = ""; req.on("data", c => body += c); req.on("end", () => {
+    const p = body ? JSON.parse(body) : {}, m = req.url.split("/").pop(), ok = r => res.end(JSON.stringify({ ok: true, result: r }));
+    if (req.url.startsWith("/file/")) return res.end(PNG(7));
+    if (m === "getWebhookInfo") return ok({ url: hooked ? "https://yaljabri.com/bot" : "" });
+    if (m === "getUpdates") { polled = true; return ok([]); }
+    if (m === "getFile") return ok({ file_id: p.file_id, file_size: 33, file_path: "photos/d.png" });
+    res.end(JSON.stringify({ ok: false, description: "unexpected " + m }));
+  });
+});
+L = list();
+fs.writeFileSync(path.join(dir, "site", "data", "announcements.json"), JSON.stringify([{ id: "dddddddddddd", title: "مسودة", image: "", w: 0, h: 0, until: "", draft: true, file_id: "D1" }, L[0]]));
+await run();
+L = list();
+t("webhook mode does not read messages", !polled);
+t("a draft's picture is fetched and sized", L[0].draft === true && /^\/ann\/[0-9a-f]{16}\.png$/.test(L[0].image) && L[0].w === 27 && fs.existsSync(path.join(dir, "site", L[0].image)), JSON.stringify(L[0]));
+t("unused pictures are removed", fs.readdirSync(path.join(dir, "site", "ann")).filter(f => /\.(png|jpg)$/.test(f)).length === 2);
 server.close(); fs.rmSync(dir, { recursive: true, force: true });
 console.log(`${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);

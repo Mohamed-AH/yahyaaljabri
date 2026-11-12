@@ -2,6 +2,8 @@ name: Announcements bot
 
 # Every hour: read what the team sent to the site's Telegram bot (announcement posters), save them, drop the ones whose
 # date has passed, and publish (a push to main redeploys the site). Setup: docs/announcements.md.
+# With BOT_WEBHOOK=on the Worker answers the bot itself (menu, edit, move, delete: worker/bot.js) and starts this job at once
+# after a new picture or a delete; this job then only fetches new pictures, makes previews and tidies.
 on:
   schedule:
     - cron: "17 * * * *"
@@ -21,6 +23,7 @@ jobs:
     env:
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       BOT_ADMINS: ${{ vars.BOT_ADMINS }}               # comma-separated Telegram user ids allowed to post
+      BOT_WEBHOOK: ${{ vars.BOT_WEBHOOK }}             # "on": the Worker answers the bot instantly (worker/bot.js)
     steps:
       - uses: actions/checkout@v4
         with:
@@ -35,6 +38,7 @@ jobs:
       - name: Read the bot's messages
         run: |
           if [ -z "$TELEGRAM_BOT_TOKEN" ]; then echo "::warning::Secret TELEGRAM_BOT_TOKEN is not set: only removing expired announcements."; fi
+          node tools/announce_bot.mjs --webhook
           node tools/announce_bot.mjs
 
       - name: Make previews
@@ -52,8 +56,18 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -q -m "Announcements: update from the Telegram bot"
-          git pull -q --rebase origin main
-          git push -q origin HEAD:main
+          for i in 1 2 3; do
+            if git pull -q --rebase origin main && git push -q origin HEAD:main; then exit 0; fi
+            # the Worker's bot changed the posters meanwhile: start again from the newest main (everything here can be redone)
+            git rebase --abort 2>/dev/null || true
+            git reset -q --hard origin/main
+            node tools/announce_bot.mjs && python tools/ann_thumbs.py && node scripts/build.mjs > /dev/null
+            git add site/data/announcements.json site/ann
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -q -m "Announcements: update from the Telegram bot"
+            sleep $((i * 5))
+          done
+          exit 1
 
       - name: Mark the messages as handled
         run: node tools/announce_bot.mjs --ack
