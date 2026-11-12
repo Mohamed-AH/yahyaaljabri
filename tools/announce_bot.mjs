@@ -18,6 +18,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
+import { today, hijriToIso, parseCaption, prune, webhookSecret } from "../worker/posters.js";
 
 const ROOT = process.env.ANN_ROOT || path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");   // ANN_ROOT, TELEGRAM_API: for tests/bot_check.mjs
 const API = process.env.TELEGRAM_API || "https://api.telegram.org";
@@ -29,38 +30,7 @@ const MAX_BYTES = 10e6, EXT = { "image/jpeg": "jpg", "image/png": "png", "image/
 
 const readJSON = (f, d) => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch { return d; } };
 const writeJSON = (f, v) => { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify(v, null, 1) + "\n"); };
-const digits = s => String(s).replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d));
-
-/* today in Riyadh (YYYY-MM-DD) */
-export const today = (now = new Date()) => new Date(now.getTime() + 3 * 3600e3).toISOString().slice(0, 10);
-
-/* Hijri (Umm al-Qura) date -> Gregorian YYYY-MM-DD, by asking Intl around an estimate */
-const hfmt = new Intl.DateTimeFormat("en-u-ca-islamic-umalqura-nu-latn", { timeZone: "UTC", year: "numeric", month: "numeric", day: "numeric" });
-export function hijriToIso(y, m, d) {
-  const est = Date.UTC(622, 6, 16) + ((y - 1) * 354.367 + (m - 1) * 29.53 + (d - 1)) * 864e5;
-  for (let k = -45; k <= 45; k++) {
-    const t = new Date(est + k * 864e5), p = Object.fromEntries(hfmt.formatToParts(t).map(x => [x.type, x.value]));
-    if (+p.year === y && +p.month === m && +p.day === d) return t.toISOString().slice(0, 10);
-  }
-  return "";
-}
-
-/* caption -> { title, until } ; until is the last day the card shows (Gregorian YYYY-MM-DD) or "" */
-export function parseCaption(caption = "") {
-  const text = digits(caption).replace(/\r/g, "");
-  let until = "";
-  const m = text.match(/(?:حتى|إلى|الى|ينتهي|ينتهى|until)\s*[:：]?\s*(?:يوم\s+\S+\s+)?(\d{1,4})\s*[/\-.]\s*(\d{1,2})\s*[/\-.]\s*(\d{1,4})/i);
-  if (m) {
-    let [a, b, c] = [+m[1], +m[2], +m[3]];
-    if (c > 999) [a, c] = [c, a];                                   // d/m/y -> y/m/d
-    if (a > 1300 && a < 1600 && b >= 1 && b <= 12 && c >= 1 && c <= 30) until = hijriToIso(a, b, c);
-    else if (a > 1999 && b >= 1 && b <= 12 && c >= 1 && c <= 31) until = `${a}-${String(b).padStart(2, "0")}-${String(c).padStart(2, "0")}`;
-  }
-  const tag = /#جدول/.test(caption);
-  const t = caption.replace(/#جدول\S*/g, "").split("\n").map(s => s.trim()).find(s => s && !/^(?:حتى|إلى|الى|ينتهي|ينتهى|until)/i.test(s));
-  const title = (t || (tag ? "جدول الدروس" : "إعلان")).slice(0, 140);
-  return { title, until, pin: tag || /^جدول/.test(title) };
-}
+export { today, hijriToIso, parseCaption };   // shared with the Worker's bot (worker/posters.js)
 
 async function api(method, params = {}) {
   const r = await fetch(`${API}/bot${TOKEN}/${method}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(params) });
@@ -90,15 +60,23 @@ export function place(list, card) {
   return [card, ...rest].sort((a, b) => (b.pin ? 1 : 0) - (a.pin ? 1 : 0));
 }
 
-export function prune(list, day = today()) {
-  const keep = list.filter(a => !a.until || a.until >= day);
-  return { keep, gone: list.filter(a => !keep.includes(a)) };
-}
-
 async function main() {
   let list = readJSON(DATA, []), changed = false;
   let next = 0;
-  if (TOKEN) {
+  const hooked = TOKEN && !DRY ? !!(await api("getWebhookInfo").catch(() => ({}))).url : false;   // the Worker answers the bot itself
+  if (hooked) console.log("webhook mode: messages are handled by the Worker (/bot); only fetching new pictures and tidying");
+  if (TOKEN) for (const a of list.filter(a => a.file_id && !a.image)) {   // drafts added in the Worker's bot: fetch their picture
+    try {
+      const buf = await download(a.file_id), type = sniff(buf);
+      if (!EXT[type]) throw new Error("not a JPEG, PNG or WebP picture");
+      const sha = crypto.createHash("sha256").update(buf).digest("hex"), file = `${sha.slice(0, 16)}.${EXT[type]}`;
+      const [w, h] = size(buf);
+      if (!DRY) { fs.mkdirSync(DIR, { recursive: true }); fs.writeFileSync(path.join(DIR, file), buf); }
+      Object.assign(a, { image: "/ann/" + file, w, h }); changed = true;
+      console.log("picture saved for draft:", a.title);
+    } catch (e) { console.error(`picture of «${a.title}»: ${e.message}`); }
+  }
+  if (TOKEN && !hooked) {
     const updates = await api("getUpdates", { timeout: 0, allowed_updates: ["message"] });
     for (const u of updates) {
       next = u.update_id + 1;
@@ -135,13 +113,29 @@ async function main() {
   const { keep, gone } = prune(list);
   if (gone.length) { changed = true; list = keep; console.log("expired:", gone.map(a => a.title).join(" | ")); }
   if (DRY) { console.log(JSON.stringify(list, null, 1)); return; }
-  if (changed) {   // images no card uses any more are deleted with it
-    writeJSON(DATA, list);
-    const used = new Set(list.map(a => path.basename(a.image)));
-    if (fs.existsSync(DIR)) for (const f of fs.readdirSync(DIR, { withFileTypes: true })) if (f.isFile() && !used.has(f.name)) fs.unlinkSync(path.join(DIR, f.name));   // thumb/ is ann_thumbs.py's
-  }
+  if (changed) writeJSON(DATA, list);
+  // pictures no card uses any more (also after a delete in the Worker's bot) are removed; thumb/ is ann_thumbs.py's
+  const used = new Set(list.filter(a => a.image).map(a => path.basename(a.image)));
+  if (fs.existsSync(DIR)) for (const f of fs.readdirSync(DIR, { withFileTypes: true })) if (f.isFile() && !used.has(f.name)) fs.unlinkSync(path.join(DIR, f.name));
   if (next) fs.writeFileSync(ACK, String(next));
   console.log(`${list.length} announcement(s)${changed ? " (changed)" : ""}`);
+}
+
+/* --webhook: BOT_WEBHOOK=on registers the Worker (https://yaljabri.com/bot) as the bot's webhook, so buttons answer at once;
+   anything else switches back to this hourly polling. Run by the workflow before main(), so the switch is one repository
+   variable. The Worker needs TELEGRAM_BOT_TOKEN, BOT_ADMINS and GH_TOKEN first (docs/announcements.md). */
+async function webhookMode() {
+  if (!TOKEN) return;
+  const want = process.env.BOT_WEBHOOK === "on", url = process.env.BOT_WEBHOOK_URL || "https://yaljabri.com/bot";
+  const info = await api("getWebhookInfo");
+  if (want) {
+    if (info.url !== url || !(info.allowed_updates || []).includes("callback_query")) {
+      await api("setWebhook", { url, secret_token: await webhookSecret(TOKEN), allowed_updates: ["message", "callback_query"], max_connections: 5 });
+      console.log("webhook set:", url);
+    }
+    await api("setMyCommands", { commands: [{ command: "menu", description: "القائمة" }, { command: "list", description: "الإعلانات الحالية" }, { command: "help", description: "طريقة الاستخدام" }] });
+    if (info.last_error_message) console.log("last webhook error:", info.last_error_message);
+  } else if (info.url) { await api("deleteWebhook", {}); console.log("webhook removed: back to hourly polling"); }
 }
 
 async function ack() {   // confirm the handled messages so Telegram stops sending them
@@ -149,4 +143,4 @@ async function ack() {   // confirm the handled messages so Telegram stops sendi
   if (TOKEN && next > 0) { await api("getUpdates", { offset: next, limit: 1, timeout: 0 }); console.log("acknowledged up to", next - 1); }
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) (process.argv.includes("--ack") ? ack() : main()).catch(e => { console.error(e.message); process.exit(1); });
+if (process.argv[1] === fileURLToPath(import.meta.url)) (process.argv.includes("--ack") ? ack() : process.argv.includes("--webhook") ? webhookMode() : main()).catch(e => { console.error(e.message); process.exit(1); });

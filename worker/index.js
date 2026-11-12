@@ -1,6 +1,8 @@
-/* Serves the static site (dist/, via the ASSETS binding) and two dynamic routes (/health is below):
+/* Serves the static site (dist/, via the ASSETS binding) and three dynamic routes (/health and /bot are below):
    /dl/<16 hex>?n=<title>  ->  R2 object audio/<hex>.m4a with Content-Disposition: attachment, so the lesson page's
    «تحميل» button saves the file under the lesson's title instead of opening it in a new tab (cross-origin `download` is ignored). */
+import { webhook } from "./bot.js";
+
 const KEY = /^\/dl\/([0-9a-f]{16})$/;
 const BAD = /[\u0000-\u001f\u007f‎‏‪-‮⁦-⁩/\\:*?"<>|]/g;
 
@@ -50,6 +52,7 @@ export default {
   async fetch(req, env) {
     const url = new URL(req.url), m = KEY.exec(url.pathname);
     if (url.pathname === "/health") return health(env);
+    if (url.pathname === "/bot") return webhook(req, env, { dispatch });   // the announcements bot (Telegram webhook, worker/bot.js)
     if (!m) return env.ASSETS.fetch(req);
     if (req.method !== "GET" && req.method !== "HEAD") return new Response(null, { status: 405, headers: { allow: "GET, HEAD" } });
     const obj = await env.MEDIA.get(`audio/${m[1]}.m4a`);
