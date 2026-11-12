@@ -126,7 +126,7 @@ async function main() {
    variable. The Worker needs TELEGRAM_BOT_TOKEN, BOT_ADMINS and GH_TOKEN first (docs/announcements.md). */
 async function webhookMode() {
   if (!TOKEN) return;
-  const want = process.env.BOT_WEBHOOK === "on", url = process.env.BOT_WEBHOOK_URL || "https://yaljabri.com/bot";
+  const want = /^(on|yes|true|1)$/i.test((process.env.BOT_WEBHOOK || "").trim()), url = process.env.BOT_WEBHOOK_URL || "https://yaljabri.com/bot";
   const info = await api("getWebhookInfo");
   if (want) {
     if (info.url !== url || !(info.allowed_updates || []).includes("callback_query")) {
