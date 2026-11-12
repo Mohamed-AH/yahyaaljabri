@@ -109,7 +109,7 @@ async function main() {
         await say(m.chat.id, `تم: «${title}» سيظهر في الموقع خلال ساعة${pin ? " أولَ الإعلانات" : ""}${until ? "، ويختفي بعد " + until : ""}.${old.length ? " وحُذف الجدول السابق: «" + old.map(a => a.title).join("»، «") + "»." : ""}`, m.message_id);
       } catch (e) { await say(m.chat.id, "تعذّر حفظ الإعلان: " + e.message, m.message_id); }
     }
-  } else console.error("TELEGRAM_BOT_TOKEN not set: only removing expired cards");
+  } else if (!TOKEN) console.error("TELEGRAM_BOT_TOKEN not set: only removing expired cards");
   const { keep, gone } = prune(list);
   if (gone.length) { changed = true; list = keep; console.log("expired:", gone.map(a => a.title).join(" | ")); }
   if (DRY) { console.log(JSON.stringify(list, null, 1)); return; }
