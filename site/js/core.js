@@ -175,6 +175,7 @@ export const SCHEDULE = {
     { book: "حادي الأرواح لابن القيم", series: "hadi", day: 1, when: "الأحد", time: "بعد العشاء", mosque: "جامع الإيمان", area: "النزهة" },
     { book: "شرح صحيح البخاري", series: "bukhari", day: 2, when: "الاثنين", time: "بعد العشاء", mosque: "جامع السيدة زين", area: "المروة" },
     { book: "مفتاح دار السعادة لابن القيم", series: "miftah", day: 5, when: "الخميس", time: "بعد العصر", mosque: "جامع السيدة زين", area: "المروة" },
+    { book: "خطبة الجمعة", series: "khutab", day: 6, when: "الجمعة", time: "صلاة الجمعة", mosque: "جامع السيدة زين", area: "المروة" },
     { book: "شرح صحيح مسلم", series: "muslim", day: 6, when: "الجمعة", time: "بعد العصر", mosque: "جامع أم المؤمنين عائشة", area: "المروة" },
     { book: "تفسير ابن كثير", series: "ibn-kathir", day: 6, when: "الجمعة", time: "بعد العشاء", mosque: "جامع السيدة زين", area: "المروة" },
   ],
