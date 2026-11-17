@@ -231,7 +231,7 @@ span.btn{cursor:default}
 .dock[hidden]{display:none}
 .dock-in{display:flex;align-items:center;gap:16px;min-height:78px}
 .d-l{display:flex;align-items:center;gap:12px;min-width:0;flex:0 1 320px}
-.d-l .tt .s{color:var(--on-night-2);font-size:13px}
+.d-l .tt .s{display:block;color:var(--on-night-2);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .d-ctl{display:flex;align-items:center;gap:6px}
 .d-ctl .cb{width:40px;height:40px}
 .d-ctl .cb.play{width:46px;height:46px}
@@ -357,6 +357,42 @@ body.lock{overflow:hidden}
 .bn.mid .bn-i{position:relative;display:block;width:54px;height:54px;margin-top:-28px;border-radius:50%;background:#0c231c;background:var(--night);color:var(--brass);box-shadow:0 0 0 5px var(--card),0 8px 18px -6px rgba(12,35,28,.6)}
 .bn.mid .bn-i .ic{position:absolute;inset:0;margin:auto}
 .bn-i{line-height:0}
+
+/* ───────── Series: play / continue, sticky toolbar, listening marks ───────── */
+.btn[hidden],.plays[hidden],.qp[hidden]{display:none}
+html:not(.js) #out{display:none}   /* without scripts the <noscript> copy shows the whole list */
+.plays{display:flex;gap:10px;flex-wrap:wrap;margin:24px 0 0}
+.plays .btn{padding:10px 20px}
+.rs-t{display:inline-block;max-width:min(46vw,420px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
+.rs-d{color:var(--mute);direction:ltr}
+.sbar{position:sticky;top:69px;z-index:20;margin:18px 0 12px;padding:10px 0;background:var(--bg)}
+.row{position:relative}
+.row.done .t{color:var(--mute)}
+.row .mk{display:inline-flex;align-items:center;gap:3px;margin-inline-start:8px;color:var(--link)}
+.pgb{position:absolute;inset-inline:0;bottom:0;height:3px;background:var(--line)}
+.pgb::after{content:"";position:absolute;inset-inline-start:0;top:0;bottom:0;width:var(--p);background:var(--brass)}
+/* ───────── Dock: previous / next and the queue panel ───────── */
+.cb:disabled{opacity:.35;cursor:default;background:transparent}
+.qp{position:absolute;bottom:100%;inset-inline-end:16px;width:440px;max-width:calc(100vw - 32px);max-height:60vh;overflow:auto;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:16px;margin-bottom:8px;box-shadow:0 18px 40px -16px rgba(0,0,0,.45)}
+.qp-h{position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 8px 8px 14px;padding-inline-start:16px;background:var(--card);border-bottom:1px solid var(--line)}
+.qp-h small{color:var(--mute);font-size:13px}
+.qp-h .cb{color:var(--ink)}.qp-h .cb:hover{background:var(--hover)}
+.qp-l{list-style:none;margin:0;padding:6px}
+.qp-l button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border:0;border-radius:10px;background:transparent;color:inherit;text-align:start;font:inherit;font-size:14.5px;cursor:pointer}
+.qp-l button:hover{background:var(--hover)}
+.qp-l button.now{background:var(--soft)}
+.qp-l .qn{flex:none;min-width:30px;text-align:center;color:var(--link);font-weight:700}
+.qp-l .qt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qp-l .qd{flex:none;color:var(--mute);font-size:13px;direction:ltr}
+@media(max-width:900px){
+  #d-prev{display:none}
+  .d-ctl .cb{width:38px;height:38px}.d-ctl .cb.play{width:44px;height:44px}
+  .qp{inset-inline:0;width:auto;max-width:none;max-height:58vh}
+}
+@media(max-width:700px){
+  .sbar{top:61px;margin-top:12px}
+  .bar.sbar select{padding:10px 12px;font-size:14px}
+}
 
 /* ───────── Responsive ───────── */
 @media(max-width:1100px){.stiles{grid-template-columns:repeat(3,minmax(0,1fr))}}

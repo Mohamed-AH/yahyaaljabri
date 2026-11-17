@@ -34,4 +34,8 @@ export const ICONS = {
   "layout-list": "<rect width=\"7\" height=\"7\" x=\"3\" y=\"3\" rx=\"1\" /><rect width=\"7\" height=\"7\" x=\"3\" y=\"14\" rx=\"1\" /><path d=\"M14 4h7\" /><path d=\"M14 9h7\" /><path d=\"M14 15h7\" /><path d=\"M14 20h7\" />",
   "table-2": "<path d=\"M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18\" />",
   "calendar": "<path d=\"M8 2v3\" /><path d=\"M16 2v3\" /><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\" /><path d=\"M3 9h18\" />",
+  "skip-forward": "<polygon points=\"5 4 15 12 5 20 5 4\" /><line x1=\"19\" x2=\"19\" y1=\"5\" y2=\"19\" />",
+  "skip-back": "<polygon points=\"19 20 9 12 19 4 19 20\" /><line x1=\"5\" x2=\"5\" y1=\"19\" y2=\"5\" />",
+  "list-video": "<path d=\"M12 12H3\" /><path d=\"M16 6H3\" /><path d=\"M12 18H3\" /><path d=\"m16 12 5 3-5 3v-6Z\" />",
+  "circle-check": "<circle cx=\"12\" cy=\"12\" r=\"10\" /><path d=\"m9 12 2 2 4-4\" />",
 };
