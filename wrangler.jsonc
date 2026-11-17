@@ -19,6 +19,11 @@
   },
   // Workers Logs (free plan: 200,000 log lines a day, kept 3 days): the bot's and the timer's errors show under Observability.
   "observability": { "enabled": true },
+  // The bot's admins (Telegram user ids, comma-separated; same as the GitHub variable BOT_ADMINS). Kept here, not in the
+  // dashboard, because every deploy replaces the Worker's text variables with this file's: a dashboard-only BOT_ADMINS was
+  // wiped by the 2026-11-15 deploy and the bot answered everyone "not authorized". keep_vars keeps any other dashboard text.
+  "vars": { "BOT_ADMINS": "5630072838" },
+  "keep_vars": true,
   "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "yahyaaljabri-media" }],
   // Timer: starts the Announcements bot (hourly) and the YouTube sync (05:47 Riyadh) on GitHub, which drops its own schedules.
   // Keep the times in step with JOBS in worker/index.js. Needs the secret GH_TOKEN (docs/announcements.md).

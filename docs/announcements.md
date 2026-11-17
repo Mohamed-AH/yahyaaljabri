@@ -44,7 +44,9 @@ use it; anyone else is told their Telegram id, so the owner can add them.
    - GitHub: edit the `yaljabri-timer` token (Settings > Developer settings > Fine-grained tokens > the token > Edit) and add
      *Repository permissions* → **Contents: Read and write** (Actions stays Read and write). Same token, nothing to copy.
    - Cloudflare → **Workers & Pages > yahyaaljabri > Settings > Variables and Secrets > Add**:
-     `TELEGRAM_BOT_TOKEN` (type *Secret*, the bot's token) and `BOT_ADMINS` (type *Text*, the same ids as in GitHub) → *Deploy*.
+     `TELEGRAM_BOT_TOKEN` (type *Secret*, the bot's token) → *Deploy*. The admins are **not** set here: `BOT_ADMINS` lives in
+     `wrangler.jsonc` (`vars`), because each deploy replaces the dashboard's *Text* variables with that file's (this wiped the
+     bot's admins on 2026-11-15). To add an admin, add the id there and in the GitHub variable.
    - GitHub → Settings > Secrets and variables > Actions > *Variables* → `BOT_WEBHOOK` = `on`. The next hourly run (or
      *Run workflow*) points the bot at the Worker. `BOT_WEBHOOK` = `off` (or removing it) switches back to hourly answers.
    - Check: send the bot `/menu`; it should answer within seconds. If not, the hourly run's log prints Telegram's last webhook error.
