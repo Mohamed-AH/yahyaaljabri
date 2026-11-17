@@ -47,10 +47,11 @@ export const eps = list => `<div class="eps">${list.map(lessonCard).join("")}</d
 export function row(l, opts = {}) {
   const s = seriesById[l.series];
   const sub = (opts.showSeries ? `${esc(s.title)}` : "") + (opts.showSeries && ldate(l) ? "، " : "") + ldate(l);
-  return `<a class="row${opts.now ? " now" : ""}" href="${href.lesson(l.id)}" style="--i:${Math.min(opts.i || 0, 24)}"${opts.now ? ' aria-current="page"' : ""}${lang(l)}>
+  const pg = opts.prog;   // this browser's listening progress {done, p} (series lists in the browser only)
+  return `<a class="row${opts.now ? " now" : ""}${pg?.done ? " done" : ""}" href="${href.lesson(l.id)}" style="--i:${Math.min(opts.i || 0, 24)}"${opts.now ? ' aria-current="page"' : ""}${lang(l)}>
     <span class="no">${l.n != null ? fmtNum(l.n) : ic(opts.now ? "headphones" : kindIcon(l) === "video" ? "video" : "play", 17)}</span>
-    <span class="tt"><span class="t">${esc(mainTitle(l, !opts.noSection))}</span><span class="s">${sub}</span></span>
-    ${l.duration ? `<span class="d">${dur(l.duration)}</span>` : ""}</a>`;
+    <span class="tt"><span class="t">${esc(mainTitle(l, !opts.noSection))}</span><span class="s">${sub}${pg?.done ? `<span class="mk">${ic("circle-check", 14)} تم الاستماع</span>` : ""}</span></span>
+    ${l.duration ? `<span class="d">${dur(l.duration)}</span>` : ""}${pg && !pg.done && pg.p > 0 ? `<span class="pgb" style="--p:${Math.round(Math.min(1, pg.p) * 100)}%" title="استمعت إلى جزء منه"></span>` : ""}</a>`;
 }
 const chip = (s, n) => `<a class="chip" href="${href.section(s)}">${ic(s.icon, 18)}<span>${s.title}</span><small>${fmtNum(n)}</small></a>`;
 const tile = (s, n) => `<a class="tile" href="${href.section(s)}"><span class="tile-ic">${ic(s.icon, 24)}</span>
@@ -156,16 +157,32 @@ export function seriesInfo(id) {
   const o = { s, sec: secOfSeries(s), flat: isFlat(s.sec), all, ordered, sections, sib: all.slice().sort(ordered ? seriesOrder : (a, b) => (b.date || "").localeCompare(a.date || "") || a.o - b.o) };
   _info.set(id, o); return o;
 }
+/* the order a series is listened in: by lesson number when it has them, otherwise oldest first */
+export const listenOrder = info => info.ordered ? info.sib : info.sib.slice().reverse();
+export const SERIES_PAGE = 50;
+const DIGITS = s => String(s).replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d));
+/* a query that is only a number ("١١١", "111") finds that lesson by its own number: the lesson's n, or a number written in its title
+   as a whole (so ١١ does not find ١١١); never by its position in the list */
+const numQuery = q => { const m = /^\s*(\d{1,4})\s*$/.exec(DIGITS(q || "")); return m ? +m[1] : null; };
+const DATES = /\d{1,4}\s*[/\-.ا]\s*\d{1,2}\s*[/\-.ا]\s*\d{1,4}|\d{1,2}\s+\d{1,2}\s+1[34]\d\d|1[34]\d\d/g;   // ٥/٨/١٤٤٦, ت ٢٥ ٥ ١٤٤٨, years
+const hasNum = (l, n) => l.n === n || (DIGITS(l.title).replace(DATES, " ").match(/\d+/g) || []).some(x => +x === n);
+/* st: { q, sec, sort: new|old|num, only: ""|new|part, shown, prog: id -> {done, p} | undefined } -> the matching lessons and the first st.shown rows */
 export function seriesList(info, st) {
-  let r = info.all.filter(l => (!st.sec || l.section === st.sec) && match(l, st.q));
+  const n = numQuery(st.q), prog = st.prog || (() => undefined);
+  let r = info.all.filter(l => (!st.sec || l.section === st.sec) && (n != null ? hasNum(l, n) : match(l, st.q)));
+  if (st.only === "new") r = r.filter(l => { const p = prog(l.id); return !p || (!p.done && !p.p); });
+  else if (st.only === "part") r = r.filter(l => { const p = prog(l.id); return p && !p.done && p.p > 0; });
   r = st.sort === "num" ? r.slice().sort(seriesOrder) : st.sort === "old" ? r.slice().reverse() : r;
+  const shown = r.slice(0, st.shown || SERIES_PAGE);
   let html = "", last, k = 0;
-  for (const l of r) {
+  for (const l of shown) {
     if (st.sort === "num" && !st.sec && info.sections.length > 1 && l.section !== last) { last = l.section; html += `<h2 class="sect">${esc(l.section || "أخرى")}</h2>`; }
-    html += row(l, { noSection: true, i: k++ });
+    html += row(l, { noSection: true, i: k++, prog: prog(l.id) });
   }
-  return { count: r.length, html: r.length ? `<div class="list cols">${html}</div>` : `<p class="empty">لا توجد نتائج.</p>` };
+  return { count: r.length, items: r, more: r.length > shown.length,
+    html: r.length ? `<div class="list cols">${html}</div>` : `<p class="empty">${st.only ? "لا توجد دروس بهذا الوصف." : "لا توجد نتائج."}</p>` };
 }
+export const moreBtn = (left) => `<button type="button" class="more" id="more">عرض المزيد (${fmtNum(left)})</button>`;
 
 function seriesPage(id) {
   const info = seriesInfo(id); if (!info) return null;
@@ -173,11 +190,15 @@ function seriesPage(id) {
   const st = { q: "", sec: "", sort: ordered ? "num" : "new" };
   const list = seriesList(info, st);
   const c = crumbs(flat ? [{ t: sec.title }] : [{ t: sec.title, h: href.section(sec) }, { t: s.title }]);
+  const audio = info.all.some(l => l.src);
   const html = `
-    <div class="bar">${searchBox("ابحث داخل السلسلة (رقم الدرس أو الباب)…")}
-      <select id="sort" aria-label="الترتيب"><option value="new"${st.sort === "new" ? " selected" : ""}>الأحدث أولًا</option><option value="old">الأقدم أولًا</option>${ordered ? `<option value="num"${st.sort === "num" ? " selected" : ""}>بالترتيب (الأول فالأخير)</option>` : ""}</select></div>
+    ${audio ? `<div class="plays" id="plays" hidden><button type="button" class="btn pri" id="play-all">${ic("play", 17)} تشغيل السلسلة</button><button type="button" class="btn" id="resume" hidden></button></div>` : ""}
+    <div class="bar sbar">${searchBox("ابحث داخل السلسلة: رقم الدرس أو الباب…")}
+      <select id="sort" aria-label="الترتيب"><option value="new"${st.sort === "new" ? " selected" : ""}>الأحدث أولًا</option><option value="old">الأقدم أولًا</option>${ordered ? `<option value="num"${st.sort === "num" ? " selected" : ""}>بالترتيب (الأول فالأخير)</option>` : ""}</select>
+      ${audio ? `<select id="only" aria-label="تصفية حسب الاستماع" hidden><option value="">كل الدروس</option><option value="new">لم أستمع إليها</option><option value="part">لم أكملها</option></select>` : ""}</div>
     ${sections.length > 1 ? `<div class="pill-row" id="secs" role="group" aria-label="تصفية حسب الكتاب"><button type="button" class="pill on" aria-pressed="true" data-s="">الكل</button>${sections.map(x => `<button type="button" class="pill" aria-pressed="false" data-s="${esc(x)}">${esc(x)}</button>`).join("")}</div>` : ""}
-    <p class="count" id="count" role="status">${fmtNum(list.count)} درسًا</p><div id="out">${list.html}</div>`;
+    <p class="count" id="count" role="status">${fmtNum(list.count)} درسًا</p><div id="out">${list.html}${list.more ? moreBtn(list.count - SERIES_PAGE) : ""}</div>
+    ${list.more ? `<noscript>${seriesList(info, { ...st, shown: 1e9 }).html}</noscript>` : ""}`;   // visitors without scripts get the whole list; with scripts the browser never builds it, so big series stay light
   return mkPage({
     nav: s.sec, path: href.series(s.id), html, wire: { t: "series", id: s.id }, ogType: "website",
     band: pageBand(c, art(s, "big"), esc(s.title), `${esc(s.description || sec.desc)} — ${fmtNum(s.count)} درسًا${hours(s.seconds) ? "، " + hours(s.seconds) : ""}`,
@@ -243,8 +264,8 @@ function lessonPage(id) {
   });
 }
 
-/* the next lesson after l in its series' order (what plays when l ends) */
-export const nextLesson = l => { const sib = seriesInfo(l.series)?.sib || []; return sib[sib.indexOf(l) + 1] || null; };
+/* the next lesson after l in its series' listening order (oldest first, or by number) */
+export const nextLesson = l => { const info = seriesInfo(l.series); if (!info) return null; const o = listenOrder(info); return o[o.indexOf(l) + 1] || null; };
 
 /* search: client-side only (noindex); this is the shell, the results are painted by app.js */
 export function searchResults(st) {
@@ -451,11 +472,12 @@ export function chromeTop(nav) {
 /* The docked player: one <audio> for the whole visit, so listening carries on while the visitor browses. Filled by app.js. */
 const dock = () => `<div class="dock" id="dock" hidden><div class="wrap dock-in">
     <a class="d-l" id="d-link" href="/"><span class="art mini" id="d-art" aria-hidden="true"></span><span class="tt"><span class="t" id="d-title"></span><span class="s" id="d-sub"></span></span></a>
-    <div class="d-ctl">${cbtn("d-fwd", "rotate-cw", "تقديم ١٥ ثانية", 22)}${cbtn("d-play", "play", "تشغيل", 22, "cb play")}${cbtn("d-back", "rotate-ccw", "رجوع ١٥ ثانية", 22)}</div>
+    <div class="d-ctl">${cbtn("d-next", "skip-forward", "الدرس التالي", 20)}${cbtn("d-fwd", "rotate-cw", "تقديم ١٥ ثانية", 22)}${cbtn("d-play", "play", "تشغيل", 22, "cb play")}${cbtn("d-back", "rotate-ccw", "رجوع ١٥ ثانية", 22)}${cbtn("d-prev", "skip-back", "الدرس السابق", 20)}</div>
     <div class="d-pr"><span id="d-cur">0:00</span><input type="range" class="seek" id="d-seek" min="0" max="0" value="0" step="1" aria-label="موضع التشغيل"><span id="d-dur"></span></div>
     <button type="button" class="d-rate" id="d-rate" aria-label="سرعة التشغيل">${speedLabel(1)}</button>
-    ${cbtn("d-x", "x", "إغلاق المشغل", 20)}
-    <audio id="d-aud" preload="none"></audio></div></div>`;
+    ${cbtn("d-q", "list-video", "قائمة التشغيل", 21)}${cbtn("d-x", "x", "إغلاق المشغل", 20)}
+    <audio id="d-aud" preload="none"></audio></div>
+    <div class="qp" id="qp" hidden role="dialog" aria-label="قائمة التشغيل"><div class="qp-h"><span><strong>قائمة التشغيل</strong><small id="qp-sub"></small></span>${cbtn("qp-x", "x", "إغلاق قائمة التشغيل", 20)}</div><ol class="qp-l" id="qp-l"></ol></div></div>`;
 export function chromeBottom(nav) {
   const vis = navItems(), extra = ["lectures", "khutab", "books"].map(id => vis.find(s => s.id === id)).filter(Boolean)[0];
   const items = [{ id: "home", t: "الرئيسية", i: "house", h: "/" }, { id: "library", t: "الأقسام", i: "layout-grid", h: href.library() }, { id: "search", t: "بحث", i: "search", h: href.search(), mid: true }];

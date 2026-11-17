@@ -1,6 +1,6 @@
 /* Browser app. Pages arrive pre-rendered (scripts/build.mjs); this script wires them up and handles client-side navigation. */
-import { init, setAnnouncements, todayRiyadh, state, byId, seriesById, secById, ic, safeYt, safeUrl, cleanQuery, oneOf, hashToPath, href, dur, fullTitle, NAME, PAGE, SECTIONS } from "./core.js";
-import { resolve, searchResults, seriesInfo, seriesList, nextLesson, ogTitle, coverColor, speedLabel, SPEEDS } from "./views.js";
+import { init, setAnnouncements, todayRiyadh, state, byId, seriesById, secById, ic, safeYt, safeUrl, cleanQuery, oneOf, hashToPath, href, dur, fullTitle, esc, NAME, PAGE, SECTIONS } from "./core.js";
+import { resolve, searchResults, seriesInfo, seriesList, listenOrder, moreBtn, SERIES_PAGE, ogTitle, coverColor, speedLabel, SPEEDS } from "./views.js";
 
 const $ = s => document.querySelector(s);
 const app = $("#app"), live = $("#sr-live");
@@ -89,13 +89,44 @@ function pills(container, onPick) {
   });
 }
 
+/* Series page: search (a number finds that lesson), sort, book and listening filters, 50 rows at a time, this browser's progress
+   marks, and «تشغيل السلسلة» / «متابعة» which hand the filtered list to the player as its queue. */
 function wireSeries(id) {
-  const info = seriesInfo(id), q = $("#q"), sort = $("#sort"), out = $("#out"), count = $("#count");
-  const st = { q: "", sec: "", sort: oneOf(sort.value, ["new", "old", "num"], "new") };
-  const paint = () => { const r = seriesList(info, st); count.textContent = new Intl.NumberFormat("ar-EG", { useGrouping: false }).format(r.count) + " درسًا"; out.innerHTML = r.html; };
-  q.addEventListener("input", debounce(e => { st.q = cleanQuery(e.target.value); paint(); }));
-  sort.addEventListener("change", e => { st.sort = oneOf(e.target.value, ["new", "old", "num"], "new"); paint(); });
-  pills($("#secs"), s => { st.sec = s; paint(); });
+  const info = seriesInfo(id), q = $("#q"), sort = $("#sort"), only = $("#only"), out = $("#out"), count = $("#count");
+  const st = { q: "", sec: "", only: "", sort: oneOf(sort.value, ["new", "old", "num"], "new"), shown: SERIES_PAGE, prog: progress, touched: false };
+  const nfmt = new Intl.NumberFormat("ar-EG", { useGrouping: false });
+  let r;
+  const paint = () => {
+    r = seriesList(info, st);
+    count.textContent = nfmt.format(r.count) + " درسًا";
+    out.innerHTML = r.html + (r.more ? moreBtn(r.count - st.shown) : "");
+  };
+  out.addEventListener("click", e => { if (e.target.closest("#more")) { st.shown += SERIES_PAGE; paint(); $("#more")?.focus(); } });
+  const again = () => { st.shown = SERIES_PAGE; paint(); };
+  q.addEventListener("input", debounce(e => { st.q = cleanQuery(e.target.value); again(); }));
+  sort.addEventListener("change", e => { st.sort = oneOf(e.target.value, ["new", "old", "num"], "new"); st.touched = true; again(); });
+  if (only) { only.hidden = false; only.addEventListener("change", e => { st.only = oneOf(e.target.value, ["new", "part"], ""); again(); }); }
+  pills($("#secs"), s => { st.sec = s; again(); });
+  if (info.all.some(l => progress(l.id))) paint();   // the pre-rendered rows get this browser's progress marks
+  else r = seriesList(info, st);
+
+  const plays = $("#plays"); if (!plays) return;
+  const order = listenOrder(info).filter(l => l.src);
+  const resume = $("#resume"), last = byId[store.get("lastIn", {})[id]];
+  plays.hidden = !order.length;
+  if (last && last.src && last.series === id && !progress(last.id)?.done) {
+    resume.hidden = false;
+    resume.innerHTML = `${ic("headphones", 17)} متابعة: <span class="rs-t">${esc(fullTitle(last))}</span>${saved(last.id) ? ` <span class="rs-d">(${tfmt(saved(last.id))})</span>` : ""}`;
+    resume.onclick = () => playQueue(order, Math.max(0, order.indexOf(last)), info.s.title);
+  }
+  $("#play-all").onclick = () => {
+    // the list as filtered; in its own order if the visitor picked one, otherwise in listening order (oldest first / by number)
+    const pick = new Set(r.items.map(l => l.id));
+    const list = (st.touched ? r.items : order.filter(l => pick.has(l.id))).filter(l => l.src);
+    if (!list.length) return;
+    const first = list.findIndex(l => !progress(l.id)?.done);
+    playQueue(list, first < 0 ? 0 : first, info.s.title + (st.q || st.sec || st.only ? " (المختار)" : ""));
+  };
 }
 
 function wireSearch() {
@@ -149,20 +180,62 @@ function wireLesson(w, byNavigation) {
    moves on to the next lesson of the series, and shows on the lock screen (Media Session). */
 const aud = $("#d-aud"), dock = $("#dock");
 const P = { l: null, retried: false, rate: 1 };
-const store = { get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+/* localStorage, read once per key and kept in memory (series lists ask about hundreds of lessons at a time) */
+const store = { m: new Map(),
+  get(k, d) { if (this.m.has(k)) return this.m.get(k) ?? d; let v = null; try { v = JSON.parse(localStorage.getItem(k)); } catch {} this.m.set(k, v); return v ?? d; },
+  set(k, v) { this.m.set(k, v); try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+addEventListener("storage", e => store.m.delete(e.key));   // another tab changed it
 const tfmt = s => dur(Math.floor(s || 0)) || "0:00";
 const saved = id => { const t = store.get("pos", {})[id]; return typeof t === "number" && t > 0 ? t : 0; };
+/* this browser's progress on a lesson: { done, p (0..1 heard) } or undefined */
+function progress(id) {
+  if (store.get("done", {})[id]) return { done: true, p: 1 };
+  const t = saved(id), d = byId[id]?.duration || 0;
+  return t ? { done: false, p: d ? t / d : 0.01 } : undefined;
+}
+function markDone(l) {
+  const done = store.get("done", {}); if (done[l.id]) return;
+  done[l.id] = 1; store.set("done", done);
+}
 function remember(force) {
   if (!P.l || (!force && aud.paused)) return;
   const pos = store.get("pos", {}), t = Math.floor(aud.currentTime || 0), d = fin(aud.duration) || P.l.duration || 0;
-  if (d && t > d - 20) delete pos[P.l.id]; else if (t > 5) pos[P.l.id] = t;
+  if (d && t > d - 20) { delete pos[P.l.id]; markDone(P.l); } else if (t > 5) pos[P.l.id] = t;
   const keys = Object.keys(pos); if (keys.length > 300) keys.slice(0, keys.length - 300).forEach(k => delete pos[k]);
   store.set("pos", pos); store.set("last", P.l.id);
+}
+/* The queue: what plays next. «تشغيل السلسلة» sets it to the (filtered) series list; any other lesson that starts playing brings its
+   whole series in listening order. One list drives the dock's next/previous buttons, the lock screen and the end of a lesson, so they
+   always agree. Finished lessons are skipped when moving on. Kept in localStorage so it survives closing the browser. */
+const Q = { ids: [], i: 0, label: "" };
+function setQueue(list, i, label) { Q.ids = list.map(l => l.id); Q.i = i; Q.label = label; saveQueue(); paintQueue(); }
+const saveQueue = () => store.set("queue", { ids: Q.ids.slice(0, 1500), i: Q.i, label: Q.label });
+function follow(l) {   // keep the queue in step with the lesson now loaded
+  const i = Q.ids.indexOf(l.id);
+  if (i >= 0) { Q.i = i; saveQueue(); paintQueue(); return; }
+  const info = seriesInfo(l.series), order = info ? listenOrder(info).filter(x => x.src) : [l];
+  setQueue(order, Math.max(0, order.indexOf(l)), info ? info.s.title : "");
+}
+function playQueue(list, i, label) { setQueue(list, i, label); const l = list[i]; load(l, true, saved(l.id)); }
+function step(d, skipDone) {   // the lesson d steps away in the queue (skipping finished ones going forward), or null
+  for (let i = Q.i + d; i >= 0 && i < Q.ids.length; i += d) {
+    const l = byId[Q.ids[i]];
+    if (l && l.src && !(skipDone && d > 0 && progress(l.id)?.done)) return l;
+  }
+  return null;
+}
+const nextInQueue = () => step(1, true) || step(1, false);
+function jump(l, pageFollows) {   // play l from where it stopped; when the visitor is on the previous lesson's page, the page follows
+  if (!l) return;
+  const was = P.l; load(l, true, saved(l.id));
+  if (pageFollows && was && was !== l && location.pathname === href.lesson(was.id)) go(href.lesson(l.id));
 }
 function load(l, play = true, at = 0) {
   if (P.l !== l) {
     remember(true);
     P.l = l; P.retried = false;
+    follow(l);
+    const li = store.get("lastIn", {}); li[l.series] = l.id; store.set("lastIn", li);
     aud.src = safeUrl(l.src); aud.dataset.alt = l.src_alt ? safeUrl(l.src_alt) : "";
     aud.preload = "metadata"; aud.load(); aud.playbackRate = P.rate;
     if (at) aud.addEventListener("loadedmetadata", () => { aud.currentTime = at; paint(); }, { once: true });
@@ -206,11 +279,11 @@ aud.addEventListener("timeupdate", () => { paint(); if (Date.now() - lastSave > 
 ["play", "pause", "loadedmetadata", "ratechange"].forEach(ev => aud.addEventListener(ev, paint));
 aud.addEventListener("pause", () => remember(true));
 aud.addEventListener("ended", () => {
-  const done = P.l; remember(true);
-  const n = done && nextLesson(done);
-  if (!n || !n.src) return paint();
-  load(n, true, saved(n.id));
-  if (location.pathname === href.lesson(done.id)) go(href.lesson(n.id));   // the visitor is on the finished lesson's page: follow along
+  const done = P.l; if (!done) return;
+  remember(true); markDone(done);
+  const n = nextInQueue();
+  if (!n) return paint();
+  jump(n, true);   // the visitor is on the finished lesson's page: follow along
 });
 aud.addEventListener("error", () => {   // our copy failed: try the original; a transient failure: retry once; then say so
   if (!P.l || !aud.currentSrc && !aud.src) return;
@@ -225,7 +298,31 @@ $("#d-back").addEventListener("click", () => skip(-15));
 $("#d-fwd").addEventListener("click", () => skip(15));
 $("#d-seek").addEventListener("input", e => seekTo(+e.target.value));
 $("#d-rate").addEventListener("click", () => setRate(SPEEDS[(SPEEDS.indexOf(P.rate) + 1) % SPEEDS.length]));
-$("#d-x").addEventListener("click", () => { remember(true); aud.pause(); aud.removeAttribute("src"); aud.load(); P.l = null; dock.hidden = true; document.body.classList.remove("has-dock"); store.set("last", ""); paint(); });
+$("#d-x").addEventListener("click", () => { remember(true); aud.pause(); aud.removeAttribute("src"); aud.load(); P.l = null; showQueue(false); dock.hidden = true; document.body.classList.remove("has-dock"); store.set("last", ""); paint(); });
+$("#d-next").addEventListener("click", () => jump(nextInQueue(), true));
+$("#d-prev").addEventListener("click", () => { if ((aud.currentTime || 0) > 10) return seekTo(0); jump(step(-1, false), true); });
+/* the queue panel: the list around the lesson playing; a tap plays that lesson */
+const qp = $("#qp"), qpl = $("#qp-l");
+function paintQueue() {
+  $("#d-next").disabled = !step(1, false); $("#d-prev").disabled = !P.l;
+  if (qp.hidden) return;
+  $("#qp-sub").textContent = Q.label ? ` — ${Q.label}` : "";
+  const from = Math.max(0, Q.i - 30), to = Math.min(Q.ids.length, Q.i + 120);
+  qpl.innerHTML = Q.ids.slice(from, to).map((id, k) => {
+    const l = byId[id]; if (!l) return "";
+    const i = from + k, pg = progress(id), now = i === Q.i;
+    return `<li><button type="button" data-i="${i}"${now ? ' aria-current="true" class="now"' : ""}><span class="qn">${now ? ic("headphones", 16) : pg?.done ? ic("circle-check", 16) : new Intl.NumberFormat("ar-EG").format(i + 1)}</span><span class="qt">${esc(fullTitle(l))}</span>${l.duration ? `<span class="qd">${tfmt(l.duration)}</span>` : ""}</button></li>`;
+  }).join("");
+  qpl.querySelector(".now")?.scrollIntoView({ block: "center" });
+}
+function showQueue(open) {
+  qp.hidden = !open; $("#d-q").setAttribute("aria-expanded", open);
+  if (open) { paintQueue(); (qpl.querySelector(".now") || $("#qp-x")).focus({ preventScroll: true }); }
+}
+$("#d-q").addEventListener("click", () => showQueue(qp.hidden));
+$("#qp-x").addEventListener("click", () => { showQueue(false); $("#d-q").focus(); });
+qpl.addEventListener("click", e => { const b = e.target.closest("button[data-i]"); if (!b) return; Q.i = +b.dataset.i; const l = byId[Q.ids[Q.i]]; if (l) jump(l, true); });
+addEventListener("keydown", e => { if (e.key === "Escape" && !qp.hidden) { showQueue(false); $("#d-q").focus(); } });
 try {
   const ms = navigator.mediaSession;
   if (ms) {
@@ -233,12 +330,15 @@ try {
     ms.setActionHandler("pause", () => aud.pause());
     ms.setActionHandler("seekbackward", () => skip(-15));
     ms.setActionHandler("seekforward", () => skip(15));
-    ms.setActionHandler("nexttrack", () => { const n = P.l && nextLesson(P.l); if (n && n.src) load(n, true, saved(n.id)); });
+    ms.setActionHandler("nexttrack", () => jump(nextInQueue(), true));
+    ms.setActionHandler("previoustrack", () => jump(step(-1, false), true));
   }
 } catch {}
 addEventListener("pagehide", () => remember(true));
 function restore() {   // the last lesson listened to comes back in the dock, paused where it stopped
   P.rate = SPEEDS.includes(store.get("rate", 1)) ? store.get("rate", 1) : 1; $("#d-rate").textContent = speedLabel(P.rate);
+  const q = store.get("queue", null);
+  if (q && Array.isArray(q.ids)) { Q.ids = q.ids.filter(id => typeof id === "string" && byId[id]); Q.i = Math.max(0, Q.ids.indexOf(q.ids[q.i])); Q.label = typeof q.label === "string" ? q.label.slice(0, 200) : ""; }
   const l = byId[store.get("last", "")];
   if (l && l.src && !P.l) load(l, false, saved(l.id));
 }
