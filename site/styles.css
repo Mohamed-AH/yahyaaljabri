@@ -466,3 +466,6 @@ a.sc-n:hover{filter:brightness(1.08)}
   .sc-book a,.sc-book>span:first-child{font-size:15.5px}
   .sc-n{min-width:42px;padding:3px 9px}
 }
+
+/* taps on an icon count for its button, even while the icon is being redrawn */
+button svg { pointer-events: none; }

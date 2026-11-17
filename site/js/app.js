@@ -190,7 +190,9 @@ function setRate(v) {
 const fill = (el, t, d) => { if (!el) return; el.max = Math.floor(d || 0); if (document.activeElement !== el) el.value = Math.floor(t || 0); el.style.setProperty("--p", (d ? Math.min(100, (t / d) * 100) : 0) + "%"); };
 function paint() {
   const playing = !!P.l && !aud.paused, t = aud.currentTime || 0, d = fin(aud.duration) || P.l?.duration || 0;
-  const btn = (b, on) => { if (!b) return; b.innerHTML = ic(on ? "pause" : "play", b.id === "lp-play" ? 28 : 22); b.setAttribute("aria-label", on ? "إيقاف مؤقت" : "تشغيل"); };
+  // redraw a play button only when its state changes: replacing the icon on every timeupdate (4 times a second) dropped taps
+  // that landed while it was being swapped, so pressing pause sometimes did nothing
+  const btn = (b, on) => { if (!b || b.dataset.on === String(on)) return; b.dataset.on = on; b.innerHTML = ic(on ? "pause" : "play", b.id === "lp-play" ? 28 : 22); b.setAttribute("aria-label", on ? "إيقاف مؤقت" : "تشغيل"); };
   if (P.l) { btn($("#d-play"), playing); $("#d-cur").textContent = tfmt(t); fill($("#d-seek"), t, d); }
   const lp = $("#lp"); if (!lp || !lp.querySelector(".lp-ui")) return;
   const mine = P.l && lp.dataset.id === P.l.id, l = byId[lp.dataset.id];
