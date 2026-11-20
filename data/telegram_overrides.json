@@ -754,5 +754,18 @@
  "jabiri-4876": {
   "publish": false,
   "note": "moshif 2026-11-16: same audio as jabiri-4867 (الدرس الرابع من حادي الأرواح); hidden"
+ },
+ "jabiri-3987": {
+  "publish": false,
+  "note": "moshif 2026-11-20: another copy of jabiri-3964 (تفسير ابن كثير البقرة ٢١٦–٢٢٠); hidden. Was folded into jabiri-3958 until the importer stopped joining files of different lengths"
+ },
+ "jabiri-4956": {
+  "title": "خطبة الجمعة: تقوى الله، والمحافظة على الممتلكات العامة",
+  "note": "2026-11-20 catch-up: subject from the post before the audio (jabiri-4955); file named «New Recording 160»"
+ },
+ "jabiri-4957": {
+  "title": "تلاوة صلاة الجمعة ١٠ جمادى الآخرة ١٤٤٨هـ",
+  "series": "tilawa",
+  "note": "moshif 2026-11-20: «New Recording 161» is the Friday prayer recitation (posted with the khutbah jabiri-4956)"
  }
 }

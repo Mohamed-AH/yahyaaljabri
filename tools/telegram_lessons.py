@@ -308,6 +308,15 @@ def fits(stated, x):
     return abs(stated - got) <= tol
 
 
+def same_length(a, b):
+    """Two files under one post are copies of one lesson only if their lengths agree (a khutbah post
+    can describe the khutbah and the prayer after it: two recordings, two lessons)."""
+    (x, ex), (y, ey) = length(a), length(b)
+    if x is None or y is None:
+        return True
+    return abs(x - y) <= max(120, max(x, y) * (0.05 if ex and ey else 0.3))
+
+
 SPEAKER = re.compile(r'(فضيلة|الشيخ|الوالد|يحيى|يحي|بن|أحمد|احمد|الجابري|حفظه الله)\s*')
 
 
@@ -400,7 +409,7 @@ def main():
         for x in g:
             if x['_ann'] and x['_ann'][3] and x['_ann'][2][3] and len(clean(x['_ann'][1])) > 60:
                 key = clean(x['_ann'][1])
-                if key in by_ann:
+                if key in by_ann and same_length(g[0], groups[by_ann[key]][0]):
                     parent[find(i)] = find(by_ann[key])
                 else:
                     by_ann[key] = i
